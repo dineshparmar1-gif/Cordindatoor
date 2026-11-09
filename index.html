@@ -76,7 +76,7 @@ const rng=(a,f,t)=>a.filter(x=>x.d>=f&&x.d<=t);
 NAV.forEach(n=>{const a=document.createElement('a');a.dataset.v=n[0];a.textContent=n[1]+'  '+n[2];a.onclick=()=>{view=n[0];side.classList.remove('open');render()};side.appendChild(a)});
 function theme(){const d=document.documentElement;d.dataset.t=d.dataset.t=='dark'?'':'dark';render()}
 function skel(){$('#view').innerHTML='<div class="grid">'+'<div class="sk"></div>'.repeat(8)+'</div>'}
-function load(){$('#err').hidden=true;skel();(!window.API_URL||API_URL.includes('PASTE'))?(()=>{$('#err').hidden=false;$('#err').textContent='Set API_URL in config.js to your Apps Script web app URL.';$('#view').innerHTML=''})():fetch(API_URL).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);return j}).then(init).catch(e=>{$('#err').hidden=false;$('#err').textContent='Data connection failed: '+(e.message||e);$('#view').innerHTML=''})}
+function load(){$('#err').hidden=true;if(D){window._y=scrollY;$('#upd').textContent='Refreshing…'}else skel();(!window.API_URL||API_URL.includes('PASTE'))?(()=>{$('#err').hidden=false;$('#err').textContent='Set API_URL in config.js to your Apps Script web app URL.';$('#view').innerHTML=''})():fetch(API_URL).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);return j}).then(init).catch(e=>{$('#err').hidden=false;$('#err').textContent='Data connection failed: '+(e.message||e);$('#view').innerHTML=''})}
 function init(d){D=d;const h=d.headers;ci={ts:h.findIndex(x=>/timestamp/i.test(x)),em:h.findIndex(x=>/email/i.test(x)),wk:h.findIndex(x=>/work/i.test(x)),as:h.findIndex(x=>/assigner|assigned by/i.test(x))};
 if(ci.ts<0||ci.em<0||ci.wk<0){$('#err').hidden=false;$('#err').textContent='Could not find Timestamp / Email / Work columns. Headers found: '+h.join(' | ');return}
 R=d.rows.map(r=>{const t=String(r[ci.ts]);return{d:t.slice(0,10),m:t.slice(0,7),h:+t.slice(11,13),e:String(r[ci.em]).trim().toLowerCase(),w:canon(String(r[ci.wk]).trim()),a:ci.as>=0?String(r[ci.as]).trim():'',r}}).filter(x=>/^\d{4}-\d\d-\d\d/.test(x.d)&&x.e);
@@ -84,7 +84,7 @@ T=Object.assign({daily:{},monthly:{},cat:{}},d.settings||{});
 $('#upd').textContent='Updated: '+d.updated;
 const extra=[...new Set(R.map(x=>x.w))].filter(w=>w&&!CATS.includes(w));
 const cats=CATS.concat(extra),ems=[...new Set(R.map(x=>x.e))].sort();
-draws=[];ms('#mc','Work Done',cats,S.cats);ms('#me','Coordinators',ems,S.emails);go()}
+draws=[];ms('#mc','Work Done',cats,S.cats);ms('#me','Coordinators',ems,S.emails);if(window._pre!=null){pre.value=window._pre;window._pre=null}go();const y=window._y;if(y!=null){setTimeout(()=>{scrollTo(0,y);window._y=null},80)}}
 function ms(sel,title,opts,set){const el=$(sel),btn=el.querySelector('.msb'),p=el.querySelector('.msp'),q=p.querySelector('input'),o=p.querySelector('.mso'),[a,c]=p.querySelectorAll('.msa a');
 const draw=()=>{const k=q.value.toLowerCase();o.innerHTML=opts.filter(x=>x.toLowerCase().includes(k)).map(x=>`<label><input type=checkbox ${set.has(x)?'checked':''} value="${esc(x)}">${esc(x)}</label>`).join('');btn.innerHTML=`${title} <b>${set.size||'All'}</b>`};
 draws.push(draw);draw();btn.onclick=e=>{e.stopPropagation();document.querySelectorAll('.msp').forEach(x=>x!==p&&(x.hidden=true));p.hidden=!p.hidden};p.onclick=e=>e.stopPropagation();
@@ -105,7 +105,8 @@ else{b='\ufeff'+[h.map(e).join(',')].concat(rows.map(r=>r.map(e).join(','))).joi
 const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([b],{type:t}));a.download=name+(xls?'.xls':'.csv');a.click()}
 function cnt(el,n){let s=null;const f=t=>{s=s||t;const p=Math.min(1,(t-s)/700);el.textContent=Math.round(n*p).toLocaleString('en-IN');p<1&&requestAnimationFrame(f)};requestAnimationFrame(f)}
 function modal(h){$('#mbody').innerHTML=h;$('#modal').hidden=false}
-function render(){if(!D)return;kill();document.querySelectorAll('#side a').forEach(a=>a.classList.toggle('on',a.dataset.v==view));
+function sv(){try{localStorage.setItem('cda',JSON.stringify({view,from:S.from,to:S.to,cats:[...S.cats],emails:[...S.emails],pre:pre.value,RP,RS,t:document.documentElement.dataset.t||'',y:window._y!=null?window._y:scrollY}))}catch(e){}}
+function render(){if(!D)return;sv();kill();document.querySelectorAll('#side a').forEach(a=>a.classList.toggle('on',a.dataset.v==view));
 const v=$('#view');if(!R.length){v.innerHTML='<div class=empty>No records found in the sheet.</div>';return}
 if(!F.length&&!['set','target','report'].includes(view)){v.innerHTML='<div class=empty>🔍 No records match the selected filters.</div>';return}
 ({overview:vOver,coord:vCoord,assign:vAssign,hour:vHour,month:vMonth,cat:vCat,target:vTarget,growth:vGrowth,rec:vRec,set:vSet,report:vReport})[view](v)}
@@ -231,5 +232,7 @@ const tx=[nm,fd(RP.date),'','Grand Total: '+ed.length,''].concat(list.map((w,i)=
 v.innerHTML=`<div class=card style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><b>📅 Report date</b><input type=date value="${RP.date}" onchange="RP.date=this.value;render()" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"><span style="color:var(--mu);font-size:12px">Reports par upar ke global filters apply nahi hote, sirf yeh date.</span></div>
 <div class="grid g2" style="margin-top:14px"><div class=card style="grid-column:1/-1"><h3 style="margin-top:0">1) Executive-wise report (Sheet style) <button class=btn onclick="copyEl('pv')">📋 Copy table</button></h3><div class=sc style="max-height:none">${pv}</div></div>
 <div class=card style="grid-column:1/-1"><h3 style="margin-top:0">2) WhatsApp report (single email) <button class=btn onclick="copyTx('wt')">📋 Copy text</button></h3><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"><select onchange="RP.email=this.value;RP.name='';render()" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)">${ems.map(e=>`<option ${e==RP.email?'selected':''}>${esc(e)}</option>`).join('')}</select><input value="${esc(nm)}" onchange="RP.name=this.value;render()" placeholder="Name (line 1)" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"></div><textarea id=wt class=rt readonly>${esc(tx)}</textarea></div></div>`}
+try{const z=JSON.parse(localStorage.getItem('cda')||'null');if(z){view=NAV.some(n=>n[0]==z.view)?z.view:'overview';S.from=z.from||'';S.to=z.to||'';S.cats=new Set(z.cats||[]);S.emails=new Set(z.emails||[]);if(z.RP){RP=z.RP;RP.date=''}if(z.RS)RS=z.RS;if(z.t)document.documentElement.dataset.t=z.t;window._y=z.y||0;window._pre=z.pre||''}}catch(e){}
+addEventListener('scroll',()=>{clearTimeout(window._st);window._st=setTimeout(()=>{if(window._y==null)sv()},300)});
 load();
 </script></body></html>
