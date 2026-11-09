@@ -35,7 +35,7 @@ th{color:var(--mu);font-weight:600;cursor:pointer;position:sticky;top:0;backgrou
 .r1{background:linear-gradient(135deg,#f59e0b,#fde68a);color:#000}.r2{background:linear-gradient(135deg,#94a3b8,#e2e8f0);color:#000}.r3{background:linear-gradient(135deg,#b45309,#fdba74);color:#000}
 .sk{height:90px;border-radius:16px;background:linear-gradient(90deg,var(--card) 25%,var(--bd) 50%,var(--card) 75%);background-size:200% 100%;animation:sh 1.2s infinite}@keyframes sh{to{background-position:-200% 0}}
 .empty,#err{padding:40px;text-align:center;color:var(--mu)}#err{background:#dc262615;color:var(--dn);margin:14px 18px;border-radius:12px;padding:14px}
-#modal[hidden]{display:none!important}#modal{position:fixed;inset:0;background:#0008;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
+#modal[hidden],#toast[hidden]{display:none!important}#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#0b1f4d;color:#fff;padding:9px 18px;border-radius:20px;z-index:60}textarea.rt{width:100%;min-height:380px;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);font:14px/1.5 Consolas,monospace}#modal{position:fixed;inset:0;background:#0008;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
 #modal>div{background:var(--card);border-radius:18px;width:min(900px,100%);max-height:92vh;overflow:auto;padding:20px}
 .ins li{margin:6px 0}canvas{max-height:300px}
 @media(max-width:860px){#side{transform:translateX(-100%)}#side.open{transform:none}#main{margin-left:0}.g2{grid-template-columns:1fr}#mb{display:inline-block!important}.hm{grid-template-columns:repeat(6,1fr)}}
@@ -52,10 +52,13 @@ th{color:var(--mu);font-weight:600;cursor:pointer;position:sticky;top:0;backgrou
 <div class="ms" id="mc"><button class="msb"></button><div class="msp" hidden><input type="text" placeholder="Search…"><div class="msa"><a>Select All</a><a>Clear All</a></div><div class="mso"></div></div></div>
 <div class="ms" id="me"><button class="msb"></button><div class="msp" hidden><input type="text" placeholder="Search…"><div class="msa"><a>Select All</a><a>Clear All</a></div><div class="mso"></div></div></div>
 <button class="btn g" onclick="clearAll()">✕ Clear filters</button></div>
-<div id="view"></div></div><div id="modal" hidden onclick="if(event.target==this)this.hidden=true"><div id="mbody"></div></div>
+<div id="view"></div></div><div id="toast" hidden></div><div id="modal" hidden onclick="if(event.target==this)this.hidden=true"><div id="mbody"></div></div>
 <script>
 const CATS=["Ticket Assigned to Zoho","Added in the Outbound Sheet","Added in the Lead's Sheet","Added in the LS","Ticket's Follow-up's (Zoho & Data Entry)","Status Update (Outbound) / Payment's Update (Lead's Sheet)","Lead's Re-Check","Transfer to MT Team / Data Entry Team / Retail POS or Other's","Duplicate Ticket - (Close)","Ticket's QC","Re-assign to Other's","Re-open Ticket","Self Raise + Added in the Outbound Sheet","Self Raise + Assigned it to Zoho","Contact Number or RID Update & Hold"];
-const NAV=[["overview","🏠","Overview"],["coord","👥","Coordinator Performance"],["assign","🧾","Assigner Wise Analysis"],["hour","⏰","Hourly Activity"],["month","📅","Monthly Analysis"],["cat","🗂️","Work Category Analysis"],["target","🎯","Target vs Achievement"],["growth","📈","Productivity Growth"],["rec","📄","Detailed Records"],["set","⚙️","Settings"]];
+const WA=["Added in the LS","Added in the Outbound Sheet","Contact Number or RID Update & Hold","Duplicate Ticket - (Close)","Re-assign to Other's","Re-open Ticket","Self Raise + Added in the Outbound Sheet","Self Raise + Assigned it to Zoho","Status Update (Outbound) / Payment's Update (Lead's Sheet)","Ticket Assigned to Zoho","Ticket's Follow-up's (Zoho & Data Entry)","Ticket's QC","Transfer to MT Team / Data Entry Team / Retail POS or Other's","Visit QC"];
+const nk=x=>String(x).toLowerCase().replace(/\s+/g,''),canon=w=>{const k=nk(w);return CATS.concat(WA).find(c=>nk(c)==k)||w};
+let RP={date:'',email:'',name:''};
+const NAV=[["overview","🏠","Overview"],["coord","👥","Coordinator Performance"],["assign","🧾","Assigner Wise Analysis"],["hour","⏰","Hourly Activity"],["month","📅","Monthly Analysis"],["cat","🗂️","Work Category Analysis"],["target","🎯","Target vs Achievement"],["growth","📈","Productivity Growth"],["rec","📄","Detailed Records"],["report","📝","Reports"],["set","⚙️","Settings"]];
 const PAL=["#2563eb","#38bdf8","#16a34a","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#64748b","#84cc16","#0ea5e9","#a855f7","#eab308","#06b6d4"];
 const $=s=>document.querySelector(s),side=$('#side'),pre=$('#pre');
 let D,R=[],F=[],ci={},T={daily:{},monthly:{},cat:{}},S={from:'',to:'',cats:new Set(),emails:new Set()},view='overview',CH=[],RS={k:0,dir:1,q:'',p:0},draws=[];
@@ -76,7 +79,7 @@ function skel(){$('#view').innerHTML='<div class="grid">'+'<div class="sk"></div
 function load(){$('#err').hidden=true;skel();(!window.API_URL||API_URL.includes('PASTE'))?(()=>{$('#err').hidden=false;$('#err').textContent='Set API_URL in config.js to your Apps Script web app URL.';$('#view').innerHTML=''})():fetch(API_URL).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);return j}).then(init).catch(e=>{$('#err').hidden=false;$('#err').textContent='Data connection failed: '+(e.message||e);$('#view').innerHTML=''})}
 function init(d){D=d;const h=d.headers;ci={ts:h.findIndex(x=>/timestamp/i.test(x)),em:h.findIndex(x=>/email/i.test(x)),wk:h.findIndex(x=>/work/i.test(x)),as:h.findIndex(x=>/assigner|assigned by/i.test(x))};
 if(ci.ts<0||ci.em<0||ci.wk<0){$('#err').hidden=false;$('#err').textContent='Could not find Timestamp / Email / Work columns. Headers found: '+h.join(' | ');return}
-R=d.rows.map(r=>{const t=String(r[ci.ts]);return{d:t.slice(0,10),m:t.slice(0,7),h:+t.slice(11,13),e:String(r[ci.em]).trim().toLowerCase(),w:String(r[ci.wk]).trim(),a:ci.as>=0?String(r[ci.as]).trim():'',r}}).filter(x=>/^\d{4}-\d\d-\d\d/.test(x.d)&&x.e);
+R=d.rows.map(r=>{const t=String(r[ci.ts]);return{d:t.slice(0,10),m:t.slice(0,7),h:+t.slice(11,13),e:String(r[ci.em]).trim().toLowerCase(),w:canon(String(r[ci.wk]).trim()),a:ci.as>=0?String(r[ci.as]).trim():'',r}}).filter(x=>/^\d{4}-\d\d-\d\d/.test(x.d)&&x.e);
 T=Object.assign({daily:{},monthly:{},cat:{}},d.settings||{});
 $('#upd').textContent='Updated: '+d.updated;
 const extra=[...new Set(R.map(x=>x.w))].filter(w=>w&&!CATS.includes(w));
@@ -104,8 +107,8 @@ function cnt(el,n){let s=null;const f=t=>{s=s||t;const p=Math.min(1,(t-s)/700);e
 function modal(h){$('#mbody').innerHTML=h;$('#modal').hidden=false}
 function render(){if(!D)return;kill();document.querySelectorAll('#side a').forEach(a=>a.classList.toggle('on',a.dataset.v==view));
 const v=$('#view');if(!R.length){v.innerHTML='<div class=empty>No records found in the sheet.</div>';return}
-if(!F.length&&!['set','target'].includes(view)){v.innerHTML='<div class=empty>🔍 No records match the selected filters.</div>';return}
-({overview:vOver,coord:vCoord,assign:vAssign,hour:vHour,month:vMonth,cat:vCat,target:vTarget,growth:vGrowth,rec:vRec,set:vSet})[view](v)}
+if(!F.length&&!['set','target','report'].includes(view)){v.innerHTML='<div class=empty>🔍 No records match the selected filters.</div>';return}
+({overview:vOver,coord:vCoord,assign:vAssign,hour:vHour,month:vMonth,cat:vCat,target:vTarget,growth:vGrowth,rec:vRec,set:vSet,report:vReport})[view](v)}
 function setView(x){view=x;render()}
 function pickE(e){S.emails=new Set([e]);draws.forEach(d=>d());go()}function pickC(c){S.cats=new Set([c]);draws.forEach(d=>d());go()}
 
@@ -206,5 +209,27 @@ v.innerHTML=`<div class=card><h3 style="margin-top:0">Targets (admin)</h3><p sty
 function saveS(){const n={daily:{},monthly:{},cat:{}};document.querySelectorAll('[data-k]').forEach(i=>{if(i.value!=='')n[i.dataset.k][i.dataset.e]=+i.value});
 $('#sm').textContent='Saving…';fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:$('#pin').value,settings:n})}).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);T=n;$('#sm').textContent='✅ Saved'}).catch(e=>$('#sm').textContent='❌ '+(e.message||e))}
 function autoR(m){clearInterval(window._ar);if(+m)window._ar=setInterval(load,m*6e4)}
+
+/* ---------- REPORTS ---------- */
+function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(window._tt);window._tt=setTimeout(()=>e.hidden=true,1800)}
+function copyEl(id){const el=document.getElementById(id),r=document.createRange();r.selectNode(el);const g=getSelection();g.removeAllRanges();g.addRange(r);const ok=document.execCommand('copy');g.removeAllRanges();toast(ok?'Copied ✅ Ab Sheet/Excel mein paste karo':'Copy failed')}
+function copyTx(id){const t=document.getElementById(id);t.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}if(!ok&&navigator.clipboard){navigator.clipboard.writeText(t.value);ok=true}toast(ok?'Copied ✅ Ab WhatsApp mein paste karo':'Copy failed')}
+function vReport(v){const ems=[...new Set(R.map(x=>x.e))].sort();if(!RP.date)RP.date=D.today;if(!RP.email||!ems.includes(RP.email))RP.email=ems[0];
+const dd=R.filter(x=>x.d==RP.date),fd=x=>x.slice(8,10)+'/'+x.slice(5,7)+'/'+x.slice(0,4);
+const E=[...new Set(dd.map(x=>x.e))].sort(),W=[...new Set(dd.map(x=>x.w))].sort((a,b)=>a.localeCompare(b));
+const n=(w,e)=>dd.filter(x=>x.w==w&&(!e||x.e==e)).length;
+const hc=c=>{const a=[.75,.5,.35,.22,.1][c-1]||0,f=k=>Math.round(255-(255-k)*a);return a?`rgb(${f(232)},${f(120)},${f(111)})`:'#fff'};
+const td='border:1px solid #cfd6e4;padding:6px 10px;color:#000;text-align:center;',tl='border:1px solid #cfd6e4;padding:6px 10px;color:#000;text-align:right;background:#fff;';
+let pv='<div class=empty>Is date par koi record nahi mila.</div>';
+if(dd.length)pv=`<table id=pv style="border-collapse:collapse;font:14px Arial,sans-serif;background:#fff"><tr><td style="${td}background:#5bbf8f;font-weight:700">${fd(RP.date)}</td><td colspan="${E.length+1}" style="${td}background:#fff;font-weight:700">Executive_wise_updates</td></tr>
+<tr><td style="${td}background:#dde3ee;font-weight:700;font-style:italic">Work done</td>${E.map(e=>`<td style="${td}background:#7f8fb0;color:#fff">${esc(e)}</td>`).join('')}<td style="${td}background:#7f8fb0;color:#fff">Grand Total</td></tr>
+${W.map(w=>{const t=n(w);return`<tr><td style="${tl}">${esc(w)}</td>${E.map(e=>{const c=n(w,e);return`<td style="${td}background:${c?hc(c):'#fff'}">${c||''}</td>`}).join('')}<td style="${td}background:${hc(t)}">${t}</td></tr>`}).join('')}
+<tr><td style="${td}font-weight:700;border-top:3px double #000;background:#fff">Grand Total</td>${E.map(e=>`<td style="${td}font-weight:700;border-top:3px double #000;background:#fff">${n(null,e)||dd.filter(x=>x.e==e).length}</td>`).join('')}<td style="${td}font-weight:700;border-top:3px double #000;background:#fff">${dd.length}</td></tr></table>`;
+const ed=dd.filter(x=>x.e==RP.email),cm=by(ed,x=>nk(x.w)),extra=[...new Set(ed.map(x=>x.w))].filter(w=>!WA.some(a=>nk(a)==nk(w))).sort(),list=WA.concat(extra);
+const auto=RP.email.split('@')[0].replace(/\d+/g,'').split(/[._]/).filter(Boolean).map(x=>x[0].toUpperCase()+x.slice(1)).join(' '),nm=RP.name||auto;
+const tx=[nm,fd(RP.date),'','Grand Total: '+ed.length,''].concat(list.map((w,i)=>`${i+1}. ${w}: ${String(cm[nk(w)]||0).padStart(2,'0')}`)).filter((x,i)=>!(i==0&&!x)).join('\n');
+v.innerHTML=`<div class=card style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><b>📅 Report date</b><input type=date value="${RP.date}" onchange="RP.date=this.value;render()" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"><span style="color:var(--mu);font-size:12px">Reports par upar ke global filters apply nahi hote, sirf yeh date.</span></div>
+<div class="grid g2" style="margin-top:14px"><div class=card style="grid-column:1/-1"><h3 style="margin-top:0">1) Executive-wise report (Sheet style) <button class=btn onclick="copyEl('pv')">📋 Copy table</button></h3><div class=sc style="max-height:none">${pv}</div></div>
+<div class=card style="grid-column:1/-1"><h3 style="margin-top:0">2) WhatsApp report (single email) <button class=btn onclick="copyTx('wt')">📋 Copy text</button></h3><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"><select onchange="RP.email=this.value;RP.name='';render()" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)">${ems.map(e=>`<option ${e==RP.email?'selected':''}>${esc(e)}</option>`).join('')}</select><input value="${esc(nm)}" onchange="RP.name=this.value;render()" placeholder="Name (line 1)" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"></div><textarea id=wt class=rt readonly>${esc(tx)}</textarea></div></div>`}
 load();
 </script></body></html>
