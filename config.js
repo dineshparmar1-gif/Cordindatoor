@@ -1,2 +1,2 @@
 // Paste your Apps Script Web app URL here (ends with /exec)
-window.API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+window.API_URL = 'https://script.google.com/macros/s/AKfycbwTN1GfZVaEU0znb8ryBjnWqgtHe4TVRQdXnmRWUtTLnP4Yk51M1zObxMhEDO_J7IB6/exec';
