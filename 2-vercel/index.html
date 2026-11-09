@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html><head><script src="config.js"></script><meta charset="utf-8">
+<title>Coordinator Data Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f4f7fc;--card:#fff;--tx:#0f1b3d;--mu:#64748b;--ac:#2563eb;--nv:#0b1f4d;--bd:#e2e8f0;--up:#16a34a;--dn:#dc2626}
+[data-t=dark]{--bg:#0b1220;--card:#131c31;--tx:#e6ecff;--mu:#94a3b8;--bd:#24304d;--nv:#060b17}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--tx)}
+#side{position:fixed;inset:0 auto 0 0;width:230px;background:var(--nv);color:#cbd5ff;padding:14px 10px;overflow:auto;transition:.25s;z-index:30}
+#side h2{color:#fff;font-size:15px;margin:6px 10px 14px}#side a{display:block;padding:10px 12px;border-radius:10px;cursor:pointer;margin:2px 0}
+#side a:hover{background:#ffffff18}#side a.on{background:var(--ac);color:#fff}
+#main{margin-left:230px;transition:.25s}
+header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--bd);display:flex;gap:12px;align-items:center;padding:10px 18px;flex-wrap:wrap}
+header h1{font-size:17px;margin:0;flex:1;min-width:180px}.chip{background:var(--bg);padding:5px 10px;border-radius:20px;font-size:12px;color:var(--mu)}
+button,select,input{font:inherit;color:var(--tx)}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:9px;padding:7px 13px;cursor:pointer}.btn.g{background:var(--bg);color:var(--tx);border:1px solid var(--bd)}
+.btn:hover{filter:brightness(1.1)}
+#flt{display:flex;gap:10px;flex-wrap:wrap;padding:14px 18px 0;align-items:center}
+#flt input,#flt select,.msb{background:var(--card);border:1px solid var(--bd);border-radius:9px;padding:7px 10px}
+.ms{position:relative}.msb{cursor:pointer}.msb b{background:var(--ac);color:#fff;border-radius:10px;padding:0 7px;margin-left:4px;font-size:11px}
+.msp{position:absolute;top:110%;left:0;width:310px;background:var(--card);border:1px solid var(--bd);border-radius:12px;box-shadow:0 12px 30px #0003;padding:8px;z-index:40}
+.msp input[type=text]{width:100%}.msa{display:flex;gap:14px;padding:6px 2px}.msa a{color:var(--ac);cursor:pointer;font-size:12px}
+.mso{max-height:230px;overflow:auto}.mso label{display:flex;gap:8px;padding:5px 2px;font-size:13px;cursor:pointer}
+#view{padding:16px 18px 40px;animation:fade .3s}@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.g2{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;box-shadow:0 2px 10px #0b1f4d0d;transition:.2s}
+.card.k{cursor:pointer}.card.k:hover,.card.cl:hover{transform:translateY(-3px);box-shadow:0 10px 24px #2563eb22}.cl{cursor:pointer}
+.k .l{color:var(--mu);font-size:12px;display:flex;justify-content:space-between}.k .v{font-size:26px;font-weight:700;margin:6px 0}.k .v.s{font-size:15px;word-break:break-all}
+.b{font-size:12px;padding:2px 7px;border-radius:10px}.up{background:#16a34a22;color:var(--up)}.dn{background:#dc262622;color:var(--dn)}.na{background:var(--bg);color:var(--mu)}
+h3{margin:18px 0 10px;font-size:15px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+th{color:var(--mu);font-weight:600;cursor:pointer;position:sticky;top:0;background:var(--card)}.sc{overflow:auto;max-height:560px}
+.bar{height:8px;background:var(--bg);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#38bdf8);border-radius:6px;transition:width .6s}
+.hm{display:grid;grid-template-columns:repeat(12,1fr);gap:6px}.hm div{padding:12px 4px;border-radius:8px;text-align:center;font-size:12px;cursor:default}
+.r1{background:linear-gradient(135deg,#f59e0b,#fde68a);color:#000}.r2{background:linear-gradient(135deg,#94a3b8,#e2e8f0);color:#000}.r3{background:linear-gradient(135deg,#b45309,#fdba74);color:#000}
+.sk{height:90px;border-radius:16px;background:linear-gradient(90deg,var(--card) 25%,var(--bd) 50%,var(--card) 75%);background-size:200% 100%;animation:sh 1.2s infinite}@keyframes sh{to{background-position:-200% 0}}
+.empty,#err{padding:40px;text-align:center;color:var(--mu)}#err{background:#dc262615;color:var(--dn);margin:14px 18px;border-radius:12px;padding:14px}
+#modal{position:fixed;inset:0;background:#0008;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
+#modal>div{background:var(--card);border-radius:18px;width:min(900px,100%);max-height:92vh;overflow:auto;padding:20px}
+.ins li{margin:6px 0}canvas{max-height:300px}
+@media(max-width:860px){#side{transform:translateX(-100%)}#side.open{transform:none}#main{margin-left:0}.g2{grid-template-columns:1fr}#mb{display:inline-block!important}.hm{grid-template-columns:repeat(6,1fr)}}
+</style></head><body>
+<nav id="side"><h2>📊 Coordinator Analysis</h2></nav>
+<div id="main">
+<header><button id="mb" class="btn g" style="display:none" onclick="side.classList.toggle('open')">☰</button>
+<h1>Coordinator Data Analysis</h1><span class="chip">FY 2026–2027</span><span class="chip" id="upd">Loading…</span>
+<button class="btn" onclick="load()">⟳ Refresh Data</button><button class="btn g" onclick="theme()">🌓</button><button class="btn g" onclick="document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()">⛶</button></header>
+<div id="err" hidden></div>
+<div id="flt">
+<select id="pre" onchange="preset(this.value)"><option value="">Date range…</option><option value="today">Today</option><option value="yest">Yesterday</option><option value="7">Last 7 Days</option><option value="30">Last 30 Days</option><option value="tm">This Month</option><option value="lm">Last Month</option><option value="c">Custom Range</option></select>
+<input type="date" id="df" onchange="S.from=this.value;pre.value='c';go()"><input type="date" id="dt" onchange="S.to=this.value;pre.value='c';go()">
+<div class="ms" id="mc"><button class="msb"></button><div class="msp" hidden><input type="text" placeholder="Search…"><div class="msa"><a>Select All</a><a>Clear All</a></div><div class="mso"></div></div></div>
+<div class="ms" id="me"><button class="msb"></button><div class="msp" hidden><input type="text" placeholder="Search…"><div class="msa"><a>Select All</a><a>Clear All</a></div><div class="mso"></div></div></div>
+<button class="btn g" onclick="clearAll()">✕ Clear filters</button></div>
+<div id="view"></div></div><div id="modal" hidden onclick="if(event.target==this)this.hidden=true"><div id="mbody"></div></div>
+<script>
+const CATS=["Ticket Assigned to Zoho","Added in the Outbound Sheet","Added in the Lead's Sheet","Added in the LS","Ticket's Follow-up's (Zoho & Data Entry)","Status Update (Outbound) / Payment's Update (Lead's Sheet)","Lead's Re-Check","Transfer to MT Team / Data Entry Team / Retail POS or Other's","Duplicate Ticket - (Close)","Ticket's QC","Re-assign to Other's","Re-open Ticket","Self Raise + Added in the Outbound Sheet","Self Raise + Assigned it to Zoho","Contact Number or RID Update & Hold"];
+const NAV=[["overview","🏠","Overview"],["coord","👥","Coordinator Performance"],["assign","🧾","Assigner Wise Analysis"],["hour","⏰","Hourly Activity"],["month","📅","Monthly Analysis"],["cat","🗂️","Work Category Analysis"],["target","🎯","Target vs Achievement"],["growth","📈","Productivity Growth"],["rec","📄","Detailed Records"],["set","⚙️","Settings"]];
+const PAL=["#2563eb","#38bdf8","#16a34a","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#64748b","#84cc16","#0ea5e9","#a855f7","#eab308","#06b6d4"];
+const $=s=>document.querySelector(s),side=$('#side'),pre=$('#pre');
+let D,R=[],F=[],ci={},T={daily:{},monthly:{},cat:{}},S={from:'',to:'',cats:new Set(),emails:new Set()},view='overview',CH=[],RS={k:0,dir:1,q:'',p:0},draws=[];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fm=n=>Math.round(n*10)/10,by=(a,f)=>{const m={};a.forEach(x=>{const k=f(x);m[k]=(m[k]||0)+1});return m},tp=m=>Object.entries(m).sort((a,b)=>b[1]-a[1]);
+const pc=(c,p)=>p?(c-p)/p*100:null;
+const bd=(c,p)=>{const g=pc(c,p);return g===null?'<span class="b na">n/a</span>':`<span class="b ${g>=0?'up':'dn'}">${g>=0?'▲':'▼'} ${Math.abs(g).toFixed(1)}%</span>`};
+const addD=(s,n)=>{const x=new Date(s+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+const hr=h=>`${h%12||12} ${h<12?'AM':'PM'}`;
+const heat=(v,m)=>`background:rgba(37,99,235,${v?0.1+0.9*v/m:0.03});color:${v/m>.55?'#fff':'inherit'}`;
+const base=()=>R.filter(x=>(!S.cats.size||S.cats.has(x.w))&&(!S.emails.size||S.emails.has(x.e)));
+function prevF(){if(!S.from||!S.to)return null;const n=Math.round((new Date(S.to)-new Date(S.from))/864e5)+1,pf=addD(S.from,-n),pt=addD(S.from,-1);return base().filter(x=>x.d>=pf&&x.d<=pt)}
+const rng=(a,f,t)=>a.filter(x=>x.d>=f&&x.d<=t);
+
+NAV.forEach(n=>{const a=document.createElement('a');a.dataset.v=n[0];a.textContent=n[1]+'  '+n[2];a.onclick=()=>{view=n[0];side.classList.remove('open');render()};side.appendChild(a)});
+function theme(){const d=document.documentElement;d.dataset.t=d.dataset.t=='dark'?'':'dark';render()}
+function skel(){$('#view').innerHTML='<div class="grid">'+'<div class="sk"></div>'.repeat(8)+'</div>'}
+function load(){$('#err').hidden=true;skel();(!window.API_URL||API_URL.includes('PASTE'))?(()=>{$('#err').hidden=false;$('#err').textContent='Set API_URL in config.js to your Apps Script web app URL.';$('#view').innerHTML=''})():fetch(API_URL).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);return j}).then(init).catch(e=>{$('#err').hidden=false;$('#err').textContent='Data connection failed: '+(e.message||e);$('#view').innerHTML=''})}
+function init(d){D=d;const h=d.headers;ci={ts:h.findIndex(x=>/timestamp/i.test(x)),em:h.findIndex(x=>/email/i.test(x)),wk:h.findIndex(x=>/work/i.test(x)),as:h.findIndex(x=>/assigner|assigned by/i.test(x))};
+if(ci.ts<0||ci.em<0||ci.wk<0){$('#err').hidden=false;$('#err').textContent='Could not find Timestamp / Email / Work columns. Headers found: '+h.join(' | ');return}
+R=d.rows.map(r=>{const t=String(r[ci.ts]);return{d:t.slice(0,10),m:t.slice(0,7),h:+t.slice(11,13),e:String(r[ci.em]).trim().toLowerCase(),w:String(r[ci.wk]).trim(),a:ci.as>=0?String(r[ci.as]).trim():'',r}}).filter(x=>/^\d{4}-\d\d-\d\d/.test(x.d)&&x.e);
+T=Object.assign({daily:{},monthly:{},cat:{}},d.settings||{});
+$('#upd').textContent='Updated: '+d.updated;
+const extra=[...new Set(R.map(x=>x.w))].filter(w=>w&&!CATS.includes(w));
+const cats=CATS.concat(extra),ems=[...new Set(R.map(x=>x.e))].sort();
+draws=[];ms('#mc','Work Done',cats,S.cats);ms('#me','Coordinators',ems,S.emails);go()}
+function ms(sel,title,opts,set){const el=$(sel),btn=el.querySelector('.msb'),p=el.querySelector('.msp'),q=p.querySelector('input'),o=p.querySelector('.mso'),[a,c]=p.querySelectorAll('.msa a');
+const draw=()=>{const k=q.value.toLowerCase();o.innerHTML=opts.filter(x=>x.toLowerCase().includes(k)).map(x=>`<label><input type=checkbox ${set.has(x)?'checked':''} value="${esc(x)}">${esc(x)}</label>`).join('');btn.innerHTML=`${title} <b>${set.size||'All'}</b>`};
+draws.push(draw);draw();btn.onclick=e=>{e.stopPropagation();document.querySelectorAll('.msp').forEach(x=>x!==p&&(x.hidden=true));p.hidden=!p.hidden};p.onclick=e=>e.stopPropagation();
+q.oninput=draw;o.onchange=e=>{e.target.checked?set.add(e.target.value):set.delete(e.target.value);draw();go()};
+a.onclick=()=>{opts.forEach(x=>set.add(x));draw();go()};c.onclick=()=>{set.clear();draw();go()}}
+document.addEventListener('click',()=>document.querySelectorAll('.msp').forEach(x=>x.hidden=true));
+function preset(v){const t=D.today;let f='',e='';if(v=='today')f=e=t;else if(v=='yest')f=e=addD(t,-1);else if(v=='7'){f=addD(t,-6);e=t}else if(v=='30'){f=addD(t,-29);e=t}
+else if(v=='tm'){f=t.slice(0,8)+'01';e=t}else if(v=='lm'){const m=addD(t.slice(0,8)+'01',-1);f=m.slice(0,8)+'01';e=m}else if(v=='c')return;S.from=f;S.to=e;go()}
+function clearAll(){S.from=S.to='';S.cats.clear();S.emails.clear();pre.value='';draws.forEach(d=>d());go()}
+function go(){$('#df').value=S.from;$('#dt').value=S.to;F=base().filter(x=>(!S.from||x.d>=S.from)&&(!S.to||x.d<=S.to));render()}
+function kill(){CH.forEach(c=>c.destroy());CH=[]}
+function mk(id,type,labels,sets,opt={}){const el=document.getElementById(id);if(!el)return;const dk=document.documentElement.dataset.t=='dark',col=dk?'#94a3b8':'#64748b';
+CH.push(new Chart(el,{type,data:{labels,datasets:sets.map((s,i)=>Object.assign({backgroundColor:type=='doughnut'?PAL:PAL[i%15],borderColor:PAL[i%15],tension:.35,borderRadius:6},s))},
+options:Object.assign({responsive:true,animation:{duration:700},plugins:{legend:{display:sets.length>1||type=='doughnut',labels:{color:col}}},scales:type=='doughnut'?{}:{x:{ticks:{color:col},stacked:opt.stack,grid:{display:false}},y:{ticks:{color:col},stacked:opt.stack,beginAtZero:true}}},opt.o||{})}))}
+function csv(h,rows,name,xls){const e=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;let b,t;
+if(xls){b='<table><tr>'+h.map(x=>`<th>${esc(x)}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+r.map(x=>`<td>${esc(x==null?'':x)}</td>`).join('')+'</tr>').join('')+'</table>';t='application/vnd.ms-excel'}
+else{b='\ufeff'+[h.map(e).join(',')].concat(rows.map(r=>r.map(e).join(','))).join('\n');t='text/csv'}
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([b],{type:t}));a.download=name+(xls?'.xls':'.csv');a.click()}
+function cnt(el,n){let s=null;const f=t=>{s=s||t;const p=Math.min(1,(t-s)/700);el.textContent=Math.round(n*p).toLocaleString('en-IN');p<1&&requestAnimationFrame(f)};requestAnimationFrame(f)}
+function modal(h){$('#mbody').innerHTML=h;$('#modal').hidden=false}
+function render(){if(!D)return;kill();document.querySelectorAll('#side a').forEach(a=>a.classList.toggle('on',a.dataset.v==view));
+const v=$('#view');if(!R.length){v.innerHTML='<div class=empty>No records found in the sheet.</div>';return}
+if(!F.length&&!['set','target'].includes(view)){v.innerHTML='<div class=empty>🔍 No records match the selected filters.</div>';return}
+({overview:vOver,coord:vCoord,assign:vAssign,hour:vHour,month:vMonth,cat:vCat,target:vTarget,growth:vGrowth,rec:vRec,set:vSet})[view](v)}
+function setView(x){view=x;render()}
+function pickE(e){S.emails=new Set([e]);draws.forEach(d=>d());go()}function pickC(c){S.cats=new Set([c]);draws.forEach(d=>d());go()}
+
+/* ---------- OVERVIEW ---------- */
+function stats(a){const e=by(a,x=>x.e),c=by(a,x=>x.w),h=by(a,x=>x.h),dn=new Set(a.map(x=>x.d)).size;return{e,c,h,dn,te:tp(e)[0],tc:tp(c)[0],th:tp(h)[0]}}
+function vOver(v){const b=base(),st=stats(F),pf=prevF(),t=D.today,today=b.filter(x=>x.d==t).length,ym=t.slice(0,7),pm=addD(ym+'-01',-1).slice(0,7);
+const cm=b.filter(x=>x.m==ym).length,lm=b.filter(x=>x.m==pm).length,np=pf?pf.length:null,ne=Object.keys(st.e).length;
+const K=[["Today's Count",today,'overview','Entries recorded today (IST), ignores date filter',bd(today,b.filter(x=>x.d==addD(t,-1)).length)],
+["Total Work Count",F.length,'overview','All records matching filters',np!=null?bd(F.length,np):''],["Active Coordinators",ne,'coord','Coordinators with ≥1 record',''],
+["Avg Daily Work",fm(F.length/(st.dn||1)),'overview','Total ÷ working days',''],["Total Working Days",st.dn,'month','Distinct dates with records',''],
+["Avg per Coordinator",fm(F.length/(ne||1)),'coord','Total ÷ active coordinators',''],["Top Coordinator",st.te[0].split('@')[0]+' ('+st.te[1]+')",'coord','Highest total in filter','s'],
+["Top Work Category",st.tc[0]+' ('+st.tc[1]+')",'cat','Most completed category','s'],["Peak Working Hour",hr(+st.th[0])+' ('+st.th[1]+')",'hour','Hour with most records','s'],
+["Monthly Growth",cm,'growth','This month vs last month (cat/coordinator filters only)',bd(cm,lm)]];
+v.innerHTML='<div class=grid>'+K.map((k,i)=>`<div class="card k" title="${k[3]}" onclick="setView('${k[2]}')"><div class=l><span>${k[0]}</span>${k[4]=='s'?'':k[4]}</div><div class="v ${k[4]=='s'?'s':''}" id=kv${i}>${k[4]=='s'?esc(k[1]):0}</div></div>`).join('')+'</div>'
++'<div class="grid g2" style="margin-top:14px"><div class=card><h3>Daily trend</h3><canvas id=c1></canvas></div><div class=card><h3>Category mix (click to filter)</h3><canvas id=c2></canvas></div><div class=card><h3>Coordinators (click to filter)</h3><canvas id=c3></canvas></div><div class=card><h3>💡 Team insights</h3><ul class=ins>'+insights(st,pf)+'</ul></div></div>';
+K.forEach((k,i)=>k[4]!='s'&&cnt($('#kv'+i),+k[1]));
+const d=tp(by(F,x=>x.d)).sort((a,b)=>a[0]<b[0]?-1:1);mk('c1','line',d.map(x=>x[0]),[{label:'Records',data:d.map(x=>x[1]),fill:true,backgroundColor:'#2563eb22'}]);
+const c=tp(st.c);mk('c2','doughnut',c.map(x=>x[0]),[{data:c.map(x=>x[1])}],{o:{plugins:{legend:{display:false}},onClick:(e,a,ch)=>a.length&&pickC(c[a[0].index][0])}});
+const e=tp(st.e).slice(0,15);mk('c3','bar',e.map(x=>x[0].split('@')[0]),[{label:'Records',data:e.map(x=>x[1])}],{o:{indexAxis:'y',onClick:(ev,a)=>a.length&&pickE(e[a[0].index][0])}})}
+function insights(st,pf){const L=[],te=st.te;L.push(`🏆 Top performer: <b>${esc(te[0])}</b> (${te[1]} records)`);
+const ee=tp(st.e);if(ee.length>1)L.push(`🔻 Lowest activity: <b>${esc(ee[ee.length-1][0])}</b> (${ee[ee.length-1][1]})`);
+if(pf&&pf.length){const ps=by(pf,x=>x.e);let bg=null;Object.entries(st.e).forEach(([e,c])=>{const g=pc(c,ps[e]||0);if(g!==null&&(!bg||g>bg[1]))bg=[e,g]});bg&&L.push(`🚀 Highest growth: <b>${esc(bg[0])}</b> (+${bg[1].toFixed(1)}%)`);
+const pcn=by(pf,x=>x.w),dec=Object.entries(pcn).filter(([k,p])=>(st.c[k]||0)<p).map(x=>x[0]);L.push(dec.length?`📉 Declining categories: ${dec.map(esc).join('; ')}`:'✅ No declining categories vs previous period');
+const g=pc(F.length,pf.length);L.push(g===null?'📊 Team trend: no previous-period data':`📊 Team trend: ${g>=0?'up':'down'} ${Math.abs(g).toFixed(1)}% vs previous period`)}
+else L.push('ℹ️ Select a date range to see growth insights');
+L.push(`⏰ Most productive hour: <b>${hr(+st.th[0])}</b>`,`🗂️ Most frequent category: <b>${esc(st.tc[0])}</b>`);return L.map(x=>'<li>'+x+'</li>').join('')}
+
+/* ---------- COORDINATORS ---------- */
+function vCoord(v){const e=tp(by(F,x=>x.e)),t=D.today,wk=addD(t,-6),ym=t.slice(0,7),pf=prevF(),ps=pf?by(pf,x=>x.e):{};
+const row=([m,n])=>{const a=F.filter(x=>x.e==m),dn=new Set(a.map(x=>x.d)).size,tc=tp(by(a,x=>x.w))[0];return{m,n,avg:fm(n/dn),td:a.filter(x=>x.d==t).length,w:a.filter(x=>x.d>=wk&&x.d<=t).length,mo:a.filter(x=>x.m==ym).length,tc:tc[0],g:pc(n,ps[m]||0),p:ps[m]||0}};
+const rs=e.map(row);
+v.innerHTML='<h3>Coordinator cards</h3><div class=grid>'+rs.map(r=>`<div class="card cl" onclick="profile('${esc(r.m)}')"><b>${esc(r.m.split('@')[0])}</b><div class=k><div class=v>${r.n}</div></div><div style="color:var(--mu);font-size:12px">Avg/day ${r.avg} · Today ${r.td} · 7d ${r.w} · Month ${r.mo}<br>Top: ${esc(r.tc)}</div></div>`).join('')+'</div>'
++'<div class="grid g2" style="margin-top:14px"><div class=card><h3>Comparison</h3><canvas id=c1></canvas></div><div class=card><h3>Performance trend (top 5)</h3><canvas id=c2></canvas></div></div>'
++'<h3>🏆 Leaderboard</h3><div class="card sc"><table><tr><th>Rank</th><th>Coordinator Email</th><th>Total</th><th>Avg Daily</th><th>Most Completed Category</th><th>Growth</th></tr>'
++rs.map((r,i)=>`<tr class=cl onclick="profile('${esc(r.m)}')"><td>${i<3?`<span class="b r${i+1}">${['🥇','🥈','🥉'][i]} ${i+1}</span>`:i+1}</td><td>${esc(r.m)}</td><td>${r.n}</td><td>${r.avg}</td><td>${esc(r.tc)}</td><td>${pf?bd(r.n,r.p):'<span class="b na">n/a</span>'}</td></tr>`).join('')+'</table></div>';
+mk('c1','bar',rs.map(r=>r.m.split('@')[0]),[{label:'Total',data:rs.map(r=>r.n)}],{o:{onClick:(ev,a)=>a.length&&pickE(rs[a[0].index].m)}});
+const days=[...new Set(F.map(x=>x.d))].sort();mk('c2','line',days,rs.slice(0,5).map(r=>({label:r.m.split('@')[0],data:days.map(d=>F.filter(x=>x.e==r.m&&x.d==d).length)})))}
+function profile(m){const a=F.filter(x=>x.e==m),c=tp(by(a,x=>x.w)),d=tp(by(a,x=>x.d)).sort((x,y)=>x[0]<y[0]?-1:1);
+modal(`<div style="display:flex;justify-content:space-between"><h2 style="margin:0">${esc(m)}</h2><button class="btn g" onclick="$('#modal').hidden=true">✕</button></div><p>Total <b>${a.length}</b> · Days <b>${d.length}</b> · Avg/day <b>${fm(a.length/(d.length||1))}</b></p><canvas id=p1></canvas><h3>Category breakdown</h3>${c.map(x=>`<div style="margin:6px 0">${esc(x[0])} — <b>${x[1]}</b><div class=bar><i style="width:${x[1]/c[0][1]*100}%"></i></div></div>`).join('')}<h3>Recent activity</h3><div class=sc style="max-height:240px"><table>${a.slice().sort((x,y)=>x.r[ci.ts]<y.r[ci.ts]?1:-1).slice(0,30).map(x=>`<tr><td>${esc(x.r[ci.ts])}</td><td>${esc(x.w)}</td></tr>`).join('')}</table></div>`);
+mk('p1','line',d.map(x=>x[0]),[{label:'Daily records',data:d.map(x=>x[1]),fill:true,backgroundColor:'#2563eb22'}])}
+
+/* ---------- ASSIGNER ---------- */
+function vAssign(v){const hasA=ci.as>=0,f=hasA?(x=>x.a||'(blank)'):(x=>x.e),lbl=hasA?'Assigner':'Coordinator';const g=tp(by(F,f)),ym=D.today.slice(0,7),pm=addD(ym+'-01',-1).slice(0,7),t=D.today;
+v.innerHTML=`<h3>${hasA?'Assigner Wise Analysis':'Coordinator Wise Analysis'}</h3>${hasA?'':'<p style="color:var(--mu)">No separate assigner column exists in the sheet, so this uses the coordinator email field.</p>'}<div class=card><canvas id=c1></canvas></div><div class="card sc" style="margin-top:14px"><table><tr><th>${lbl}</th><th>Total</th><th>Today</th><th>Yesterday</th><th>This Month</th><th>Last Month</th><th>MoM</th></tr>`
++g.map(([k,n])=>{const a=F.filter(x=>f(x)==k),cm=a.filter(x=>x.m==ym).length,lm=a.filter(x=>x.m==pm).length;return`<tr><td>${esc(k)}</td><td>${n}</td><td>${a.filter(x=>x.d==t).length}</td><td>${a.filter(x=>x.d==addD(t,-1)).length}</td><td>${cm}</td><td>${lm}</td><td>${bd(cm,lm)}</td></tr>`}).join('')+'</table></div>';
+mk('c1','bar',g.map(x=>x[0].split('@')[0]),[{label:'Records',data:g.map(x=>x[1])}])}
+
+/* ---------- HOURLY ---------- */
+function vHour(v){const h=by(F,x=>x.h),arr=[...Array(24).keys()].map(i=>h[i]||0),mx=Math.max(...arr),act=arr.map((n,i)=>[i,n]).filter(x=>x[1]>0),mn=act.slice().sort((a,b)=>a[1]-b[1])[0];
+const ems=tp(by(F,x=>x.e)).map(x=>x[0]);let m2=1;const mt=ems.map(e=>[...Array(24).keys()].map(i=>{const n=F.filter(x=>x.e==e&&x.h==i).length;m2=Math.max(m2,n);return n}));
+v.innerHTML=`<div class=grid><div class="card k"><div class=l>Most productive hour</div><div class="v s">${hr(arr.indexOf(mx))} (${mx})</div></div><div class="card k"><div class=l>Least productive (active) hour</div><div class="v s">${hr(mn[0])} (${mn[1]})</div></div><div class="card k"><div class=l>Peak activity window</div><div class="v s">${hr(arr.indexOf(mx))} – ${hr((arr.indexOf(mx)+1)%24)}</div></div></div>
+<h3>24-hour heatmap</h3><div class=hm>${arr.map((n,i)=>`<div style="${heat(n,mx)}" title="${hr(i)}: ${n} records (${(n/F.length*100).toFixed(1)}%)"><b>${hr(i)}</b><br>${n}</div>`).join('')}</div>
+<h3>Coordinator-wise hourly activity</h3><div class="card sc"><table><tr><th>Coordinator</th>${arr.map((_,i)=>`<th>${i}</th>`).join('')}</tr>${ems.map((e,r)=>`<tr><td>${esc(e.split('@')[0])}</td>${mt[r].map((n,i)=>`<td style="${heat(n,m2)};text-align:center" title="${esc(e)} · ${hr(i)}: ${n}">${n||''}</td>`).join('')}</tr>`).join('')}</table></div>`}
+
+/* ---------- MONTHLY ---------- */
+function vMonth(v){const M=[];for(let i=0;i<12;i++){const y=i<9?2026:2027,m=((i+3)%12)+1;M.push(y+'-'+String(m).padStart(2,'0'))}
+const ems=tp(by(F,x=>x.e)).map(x=>x[0]),tot=M.map(m=>F.filter(x=>x.m==m).length),mt=ems.map(e=>M.map(m=>F.filter(x=>x.e==e&&x.m==m).length));let mx=1;mt.forEach(r=>r.forEach(n=>mx=Math.max(mx,n)));
+const ym=D.today.slice(0,7),pm=addD(ym+'-01',-1).slice(0,7),cm=F.filter(x=>x.m==ym).length,pmN=F.filter(x=>x.m==pm).length;
+v.innerHTML=`<div class=grid><div class="card k"><div class=l><span>This month</span>${bd(cm,pmN)}</div><div class=v>${cm}</div></div><div class="card k"><div class=l>Last month</div><div class=v>${pmN}</div></div></div>
+<div class="grid g2" style="margin-top:14px"><div class=card><h3>Month-wise total</h3><canvas id=c1></canvas></div><div class=card><h3>Coordinator monthly (grouped)</h3><canvas id=c2></canvas></div><div class=card style="grid-column:1/-1"><h3>Month-wise category distribution</h3><canvas id=c3></canvas></div></div>
+<h3>Month × Email matrix <button class="btn g" onclick="mx_()">⬇ CSV</button></h3><div class="card sc"><table><tr><th>Month</th>${ems.map(e=>`<th>${esc(e.split('@')[0])}</th>`).join('')}<th>Total</th></tr>${M.map((m,i)=>`<tr><td>${m}</td>${mt.map(r=>`<td style="${heat(r[i],mx)}">${r[i]}</td>`).join('')}<td><b>${tot[i]}</b></td></tr>`).join('')}<tr><td><b>Total</b></td>${mt.map(r=>`<td><b>${r.reduce((a,b)=>a+b,0)}</b></td>`).join('')}<td><b>${F.length}</b></td></tr></table></div>`;
+window.mx_=()=>csv(['Month'].concat(ems,['Total']),M.map((m,i)=>[m].concat(mt.map(r=>r[i]),[tot[i]])),'month-by-email');
+mk('c1','line',M,[{label:'Total',data:tot,fill:true,backgroundColor:'#2563eb22'}]);mk('c2','bar',M,ems.slice(0,8).map((e,i)=>({label:e.split('@')[0],data:mt[i]})));
+const cs=[...new Set(F.map(x=>x.w))];mk('c3','bar',M,cs.map(c=>({label:c,data:M.map(m=>F.filter(x=>x.m==m&&x.w==c).length)})),{stack:true,o:{plugins:{legend:{display:false}}}})}
+
+/* ---------- CATEGORIES ---------- */
+function vCat(v){const c=by(F,x=>x.w),all=CATS.concat(Object.keys(c).filter(k=>!CATS.includes(k))),rows=all.map(k=>[k,c[k]||0]).sort((a,b)=>b[1]-a[1]),mx=rows[0][1]||1,ems=tp(by(F,x=>x.e)).map(x=>x[0]);
+v.innerHTML=`<p>🔼 Highest: <b>${esc(rows[0][0])}</b> (${rows[0][1]}) &nbsp; 🔽 Lowest: <b>${esc(rows[rows.length-1][0])}</b> (${rows[rows.length-1][1]})</p><div class="grid g2"><div class=card><canvas id=c1></canvas></div><div class=card><canvas id=c2></canvas></div></div><h3>All categories (click to filter)</h3><div class=grid>${rows.map(r=>`<div class="card cl" onclick="pickC('${esc(r[0]).replace(/'/g,"\\'")}')"><b style="font-size:13px">${esc(r[0])}</b><div class=v style="font-size:22px;font-weight:700">${r[1]} <small style="color:var(--mu);font-size:12px">${(r[1]/F.length*100).toFixed(1)}%</small></div><div class=bar><i style="width:${r[1]/mx*100}%"></i></div></div>`).join('')}</div>
+<h3>Coordinator × Category</h3><div class="card sc"><table><tr><th>Coordinator</th>${all.map((_,i)=>`<th title="${esc(all[i])}">C${i+1}</th>`).join('')}</tr>${ems.map(e=>`<tr><td>${esc(e.split('@')[0])}</td>${all.map(k=>`<td>${F.filter(x=>x.e==e&&x.w==k).length||''}</td>`).join('')}</tr>`).join('')}</table></div>`;
+mk('c1','doughnut',rows.map(r=>r[0]),[{data:rows.map(r=>r[1])}],{o:{plugins:{legend:{display:false}},onClick:(e,a)=>a.length&&pickC(rows[a[0].index][0])}});mk('c2','bar',rows.map((r,i)=>'C'+(all.indexOf(r[0])+1)),[{label:'Count',data:rows.map(r=>r[1])}],{o:{indexAxis:'y'}})}
+
+/* ---------- TARGETS ---------- */
+function vTarget(v){const b=base(),t=D.today,ym=t.slice(0,7),ems=[...new Set(R.map(x=>x.e))].sort();const pb=(a,tg)=>tg?`<div class=bar><i style="width:${Math.min(100,a/tg*100)}%"></i></div>`:'';
+const rows=ems.map(e=>{const d=b.filter(x=>x.e==e&&x.d==t).length,m=b.filter(x=>x.e==e&&x.m==ym).length,td=+T.daily[e]||0,tm=+T.monthly[e]||0;return{e,d,m,td,tm,pm:tm?m/tm*100:null}}).sort((a,b)=>(b.pm||0)-(a.pm||0));
+v.innerHTML=`<h3>Coordinator targets (today / ${ym})</h3><p style="color:var(--mu)">Targets are set by an administrator in Settings. Blank = no target set.</p><div class="card sc"><table><tr><th>Coordinator</th><th>Daily Target</th><th>Today</th><th>Daily %</th><th>Monthly Target</th><th>Month</th><th>Achieved</th><th>Remaining</th><th style="width:140px">Progress</th></tr>${rows.map(r=>`<tr><td>${esc(r.e)}</td><td>${r.td||'—'}</td><td>${r.d}</td><td>${r.td?(r.d/r.td*100).toFixed(0)+'%':'—'}</td><td>${r.tm||'—'}</td><td>${r.m}</td><td>${r.pm==null?'—':r.pm.toFixed(0)+'%'}</td><td>${r.tm?Math.max(0,r.tm-r.m):'—'}</td><td>${pb(r.m,r.tm)}</td></tr>`).join('')}</table></div>
+<h3>Category targets (team, this month)</h3><div class=grid>${CATS.map(c=>{const a=b.filter(x=>x.w==c&&x.m==ym).length,tg=+T.cat[c]||0;return`<div class=card><b style="font-size:13px">${esc(c)}</b><div>${a} / ${tg||'—'} ${tg?`(${(a/tg*100).toFixed(0)}%)`:''}</div>${pb(a,tg)}</div>`}).join('')}</div>`}
+
+/* ---------- GROWTH ---------- */
+function vGrowth(v){const b=base(),t=D.today,ym=t.slice(0,7),pm=addD(ym+'-01',-1).slice(0,7),pf=prevF();
+const P=[['Selected vs previous period',F,pf||[]],['This month vs last month',b.filter(x=>x.m==ym),b.filter(x=>x.m==pm)],['Last 7 days vs previous 7',rng(b,addD(t,-6),t),rng(b,addD(t,-13),addD(t,-7))]];
+const ems=[...new Set(F.map(x=>x.e))],cell=(c,p)=>`${c} vs ${p} · ${c-p>=0?'+':''}${c-p} ${bd(c,p)}`;
+v.innerHTML='<p style="color:var(--mu)">"n/a" is shown when the previous period has zero records, to avoid misleading percentages.</p><div class=grid>'+P.map(p=>`<div class=card><b>${p[0]}</b><div class=v style="font-size:18px;margin-top:8px">${cell(p[1].length,p[2].length)}</div></div>`).join('')+'</div><h3>Individual growth</h3><div class="card sc"><table><tr><th>Coordinator</th>'+P.map(p=>`<th>${p[0]}</th>`).join('')+'</tr>'+ems.map(e=>`<tr><td>${esc(e)}</td>${P.map(p=>`<td>${cell(p[1].filter(x=>x.e==e).length,p[2].filter(x=>x.e==e).length)}</td>`).join('')}</tr>`).join('')+'</table></div><div class=card style="margin-top:14px"><canvas id=c1></canvas></div>';
+const w=[...new Set(b.map(x=>x.d.slice(0,7)))].sort();mk('c1','line',w,[{label:'Team monthly',data:w.map(m=>b.filter(x=>x.m==m).length),fill:true,backgroundColor:'#2563eb22'}])}
+
+/* ---------- RECORDS ---------- */
+function vRec(v){const H=D.headers;let a=F.map(x=>x.r);if(RS.q){const q=RS.q.toLowerCase();a=a.filter(r=>r.some(c=>String(c).toLowerCase().includes(q)))}
+a=a.slice().sort((x,y)=>(x[RS.k]>y[RS.k]?1:x[RS.k]<y[RS.k]?-1:0)*RS.dir);const N=25,pg=Math.max(1,Math.ceil(a.length/N));RS.p=Math.min(RS.p,pg-1);
+v.innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"><input id=rq placeholder="Search all columns…" value="${esc(RS.q)}" style="flex:1;min-width:200px;padding:8px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"><button class=btn onclick="ex()">⬇ CSV</button><button class=btn onclick="ex(1)">⬇ Excel</button><button class="btn g" onclick="clearAll()">Clear filters</button></div><p><b>${a.length}</b> records</p><div class="card sc"><table><tr>${H.map((h,i)=>`<th onclick="RS.dir=RS.k==${i}?-RS.dir:1;RS.k=${i};render()">${esc(h)} ${RS.k==i?(RS.dir>0?'▲':'▼'):''}</th>`).join('')}</tr>${a.slice(RS.p*N,RS.p*N+N).map(r=>'<tr>'+r.map(c=>`<td>${esc(c)}</td>`).join('')+'</tr>').join('')}</table></div><div style="margin-top:10px;display:flex;gap:10px;align-items:center"><button class="btn g" onclick="RS.p--;render()" ${RS.p<1?'disabled':''}>‹</button>Page ${RS.p+1} / ${pg}<button class="btn g" onclick="RS.p++;render()" ${RS.p>=pg-1?'disabled':''}>›</button></div>`;
+$('#rq').oninput=e=>{RS.q=e.target.value;RS.p=0;clearTimeout(window._t);window._t=setTimeout(()=>{render();const q=$('#rq');q.focus();q.setSelectionRange(99,99)},250)};
+window.ex=x=>csv(H,a,'records',x)}
+
+/* ---------- SETTINGS ---------- */
+function vSet(v){const ems=[...new Set(R.map(x=>x.e))].sort();
+v.innerHTML=`<div class=card><h3 style="margin-top:0">Targets (admin)</h3><p style="color:var(--mu)">Saving requires the admin PIN set in Script Properties. Viewing the dashboard needs no login.</p><div class=sc style="max-height:420px"><table><tr><th>Coordinator</th><th>Daily</th><th>Monthly</th></tr>${ems.map(e=>`<tr><td>${esc(e)}</td><td><input type=number min=0 data-k=daily data-e="${esc(e)}" value="${T.daily[e]||''}" style="width:90px"></td><td><input type=number min=0 data-k=monthly data-e="${esc(e)}" value="${T.monthly[e]||''}" style="width:90px"></td></tr>`).join('')}</table></div>
+<h3>Category targets (monthly, team)</h3><div class=grid>${CATS.map(c=>`<label style="font-size:12px">${esc(c)}<br><input type=number min=0 data-k=cat data-e="${esc(c)}" value="${T.cat[c]||''}" style="width:100%"></label>`).join('')}</div>
+<p><input type=password id=pin placeholder="Admin PIN" style="padding:8px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"> <button class=btn onclick="saveS()">Save targets</button> <span id=sm></span></p></div>
+<div class=card style="margin-top:14px"><h3 style="margin-top:0">Display & sync</h3><p>Last form sync: ${esc(D.lastSync||'—')} · Data loaded: ${esc(D.updated)}</p><p>Auto-refresh: <select id=ar onchange="autoR(this.value)"><option value=0>Off</option><option value=5>Every 5 min</option><option value=15>Every 15 min</option></select> <button class="btn g" onclick="theme()">Toggle dark mode</button></p></div>`}
+function saveS(){const n={daily:{},monthly:{},cat:{}};document.querySelectorAll('[data-k]').forEach(i=>{if(i.value!=='')n[i.dataset.k][i.dataset.e]=+i.value});
+$('#sm').textContent='Saving…';fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:$('#pin').value,settings:n})}).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);T=n;$('#sm').textContent='✅ Saved'}).catch(e=>$('#sm').textContent='❌ '+(e.message||e))}
+function autoR(m){clearInterval(window._ar);if(+m)window._ar=setInterval(load,m*6e4)}
+load();
+</script></body></html>
