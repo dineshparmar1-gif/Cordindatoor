@@ -43,7 +43,7 @@ th{color:var(--mu);font-weight:600;cursor:pointer;position:sticky;top:0;backgrou
 <nav id="side"><h2><img src="logo.png" class="lg" alt="" onerror="this.outerHTML='📊'"> Coordinator Analysis</h2></nav>
 <div id="main">
 <header><button id="mb" class="btn g" style="display:none" onclick="side.classList.toggle('open')">☰</button>
-<img src="logo.png" id="logo" alt="Logo" onerror="this.style.display='none'"><h1>Coordinator Data Analysis</h1><span class="chip">FY 2026–2027</span><span class="chip" id="upd">Loading…</span>
+<img src="logo.png" id="logo" alt="Logo" onerror="this.style.display='none'"><h1>Coordinator Data Analysis</h1><span class="chip">FY 2026–2027 · v3</span><span class="chip" id="upd">Loading…</span>
 <button class="btn" onclick="load()">⟳ Refresh Data</button><button class="btn g" onclick="theme()">🌓</button><button class="btn g" onclick="document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()">⛶</button></header>
 <div id="err" hidden></div>
 <div id="flt">
@@ -76,7 +76,30 @@ const rng=(a,f,t)=>a.filter(x=>x.d>=f&&x.d<=t);
 NAV.forEach(n=>{const a=document.createElement('a');a.dataset.v=n[0];a.textContent=n[1]+'  '+n[2];a.onclick=()=>{view=n[0];side.classList.remove('open');render()};side.appendChild(a)});
 function theme(){const d=document.documentElement;d.dataset.t=d.dataset.t=='dark'?'':'dark';render()}
 function skel(){$('#view').innerHTML='<div class="grid">'+'<div class="sk"></div>'.repeat(8)+'</div>'}
-function load(){$('#err').hidden=true;if(D){window._y=scrollY;$('#upd').textContent='Refreshing…'}else skel();(!window.API_URL||API_URL.includes('PASTE'))?(()=>{$('#err').hidden=false;$('#err').textContent='Set API_URL in config.js to your Apps Script web app URL.';$('#view').innerHTML=''})():fetch(API_URL).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);return j}).then(init).catch(e=>{$('#err').hidden=false;$('#err').textContent='Data connection failed: '+(e.message||e);$('#view').innerHTML=''})}
+let BUSY=false,AR=5,LT='';
+const idb=()=>new Promise((res,rej)=>{const q=indexedDB.open('cda',1);q.onupgradeneeded=()=>q.result.createObjectStore('k');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});
+const idbGet=()=>idb().then(d=>new Promise(r=>{const q=d.transaction('k').objectStore('k').get('data');q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)})).catch(()=>null);
+const idbSet=v=>idb().then(d=>{d.transaction('k','readwrite').objectStore('k').put(v,'data')}).catch(()=>{});
+const api=q=>fetch(API_URL+(API_URL.includes('?')?'&':'?')+q).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);return j});
+const apiR=q=>api(q).catch(()=>new Promise(r=>setTimeout(r,800)).then(()=>api(q)));
+const nowIst=()=>({today:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Kolkata'}).slice(0,10),updated:new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'medium',timeStyle:'short'})});
+const bld=C=>Object.assign({headers:C.headers,rows:C.rows,lastSync:C.lastSync||'',settings:C.settings},nowIst());
+async function load(full){
+if(BUSY)return;
+if(!window.API_URL||API_URL.includes('PASTE')){$('#err').hidden=false;$('#err').textContent='Set API_URL in config.js to your Apps Script web app URL.';$('#view').innerHTML='';return}
+BUSY=true;$('#err').hidden=true;
+const t0=performance.now();try{let C=full?null:await idbGet();
+if(D){window._y=scrollY;$('#upd').textContent='Refreshing…'}else if(C){init(bld(C));$('#upd').textContent='Cached · syncing…'}else skel();
+const m=await apiR('mode=meta');
+if(m.rows){init(Object.assign({headers:m.headers,rows:m.rows,lastSync:m.lastSync,settings:m.settings},nowIst()));BUSY=false;return}
+if(C&&(C.headers.join('|')!=m.headers.join('|')||C.lastRow>m.lastRow||Date.now()-(C.fullAt||0)>216e5))C=null;
+const have=C?C.lastRow:1,CH=3000,jobs=[];for(let a=have+1;a<=m.lastRow;a+=CH)jobs.push([a,Math.min(m.lastRow,a+CH-1)]);
+const out=[];let i=0,done=0;
+await Promise.all(Array.from({length:Math.min(6,jobs.length)},async()=>{while(i<jobs.length){const k=i++;out[k]=(await apiR('mode=rows&from='+jobs[k][0]+'&to='+jobs[k][1])).rows;done++;$('#upd').textContent='Loading '+Math.round(done/jobs.length*100)+'%'}}));
+const N={headers:m.headers,rows:(C?C.rows:[]).concat(...out),lastRow:m.lastRow,lastSync:m.lastSync,settings:m.settings,fullAt:C?C.fullAt:Date.now()};
+idbSet(N);LT=((performance.now()-t0)/1000).toFixed(1);if(D)window._y=scrollY;init(bld(N))
+}catch(e){$('#err').hidden=false;$('#err').textContent='Data connection failed: '+(e.message||e);if(!D)$('#view').innerHTML=''}
+BUSY=false}
 function init(d){D=d;const h=d.headers;ci={ts:h.findIndex(x=>/timestamp/i.test(x)),em:h.findIndex(x=>/email/i.test(x)),wk:h.findIndex(x=>/work/i.test(x)),as:h.findIndex(x=>/assigner|assigned by/i.test(x))};
 if(ci.ts<0||ci.em<0||ci.wk<0){$('#err').hidden=false;$('#err').textContent='Could not find Timestamp / Email / Work columns. Headers found: '+h.join(' | ');return}
 R=d.rows.map(r=>{const t=String(r[ci.ts]);return{d:t.slice(0,10),m:t.slice(0,7),h:+t.slice(11,13),e:String(r[ci.em]).trim().toLowerCase(),w:canon(String(r[ci.wk]).trim()),a:ci.as>=0?String(r[ci.as]).trim():'',r}}).filter(x=>/^\d{4}-\d\d-\d\d/.test(x.d)&&x.e);
@@ -206,10 +229,10 @@ function vSet(v){const ems=[...new Set(R.map(x=>x.e))].sort();
 v.innerHTML=`<div class=card><h3 style="margin-top:0">Targets (admin)</h3><p style="color:var(--mu)">Saving requires the admin PIN set in Script Properties. Viewing the dashboard needs no login.</p><div class=sc style="max-height:420px"><table><tr><th>Coordinator</th><th>Daily</th><th>Monthly</th></tr>${ems.map(e=>`<tr><td>${esc(e)}</td><td><input type=number min=0 data-k=daily data-e="${esc(e)}" value="${T.daily[e]||''}" style="width:90px"></td><td><input type=number min=0 data-k=monthly data-e="${esc(e)}" value="${T.monthly[e]||''}" style="width:90px"></td></tr>`).join('')}</table></div>
 <h3>Category targets (monthly, team)</h3><div class=grid>${CATS.map(c=>`<label style="font-size:12px">${esc(c)}<br><input type=number min=0 data-k=cat data-e="${esc(c)}" value="${T.cat[c]||''}" style="width:100%"></label>`).join('')}</div>
 <p><input type=password id=pin placeholder="Admin PIN" style="padding:8px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"> <button class=btn onclick="saveS()">Save targets</button> <span id=sm></span></p></div>
-<div class=card style="margin-top:14px"><h3 style="margin-top:0">Display & sync</h3><p>Last form sync: ${esc(D.lastSync||'—')} · Data loaded: ${esc(D.updated)}</p><p>Auto-refresh: <select id=ar onchange="autoR(this.value)"><option value=0>Off</option><option value=5>Every 5 min</option><option value=15>Every 15 min</option></select> <button class="btn g" onclick="theme()">Toggle dark mode</button></p></div>`}
+<div class=card style="margin-top:14px"><h3 style="margin-top:0">Display & sync</h3><p>Dashboard version: <b>v3</b> · Records loaded: <b>${R.length}</b> · Last load time: <b>${LT?LT+' sec':'from cache'}</b></p><p>Last form sync: ${esc(D.lastSync||'—')} · Data loaded: ${esc(D.updated)}</p><p>Auto-refresh: <select id=ar onchange="autoR(this.value)">${[0,1,2,5,10,15].map(x=>`<option value=${x} ${x==AR?'selected':''}>${x?'Every '+x+' min':'Off'}</option>`).join('')}</select> <span id=arm>${AR?'✅ ON: har '+AR+' min mein data auto-refresh hoga (save ho gaya)':'⛔ Auto-refresh band hai'}</span> <button class="btn g" onclick="load(true)">⟳ Full reload (saare rows)</button> <button class="btn g" onclick="theme()">Toggle dark mode</button></p></div>`}
 function saveS(){const n={daily:{},monthly:{},cat:{}};document.querySelectorAll('[data-k]').forEach(i=>{if(i.value!=='')n[i.dataset.k][i.dataset.e]=+i.value});
 $('#sm').textContent='Saving…';fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:$('#pin').value,settings:n})}).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);T=n;$('#sm').textContent='✅ Saved'}).catch(e=>$('#sm').textContent='❌ '+(e.message||e))}
-function autoR(m){clearInterval(window._ar);if(+m)window._ar=setInterval(load,m*6e4)}
+function autoR(m){AR=+m;try{localStorage.setItem('cda_ar',m)}catch(e){}clearInterval(window._ar);if(AR)window._ar=setInterval(()=>{if(!document.hidden)load()},AR*6e4);const e=$('#arm');if(e)e.textContent=AR?`✅ ON: har ${AR} min mein data auto-refresh hoga (save ho gaya)`:'⛔ Auto-refresh band hai'}
 
 /* ---------- REPORTS ---------- */
 function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(window._tt);window._tt=setTimeout(()=>e.hidden=true,1800)}
@@ -234,5 +257,6 @@ v.innerHTML=`<div class=card style="display:flex;gap:10px;flex-wrap:wrap;align-i
 <div class=card style="grid-column:1/-1"><h3 style="margin-top:0">2) WhatsApp report (single email) <button class=btn onclick="copyTx('wt')">📋 Copy text</button></h3><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"><select onchange="RP.email=this.value;RP.name='';render()" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)">${ems.map(e=>`<option ${e==RP.email?'selected':''}>${esc(e)}</option>`).join('')}</select><input value="${esc(nm)}" onchange="RP.name=this.value;render()" placeholder="Name (line 1)" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"></div><textarea id=wt class=rt readonly>${esc(tx)}</textarea></div></div>`}
 try{const z=JSON.parse(localStorage.getItem('cda')||'null');if(z){view=NAV.some(n=>n[0]==z.view)?z.view:'overview';S.from=z.from||'';S.to=z.to||'';S.cats=new Set(z.cats||[]);S.emails=new Set(z.emails||[]);if(z.RP){RP=z.RP;RP.date=''}if(z.RS)RS=z.RS;if(z.t)document.documentElement.dataset.t=z.t;window._y=z.y||0;window._pre=z.pre||''}}catch(e){}
 addEventListener('scroll',()=>{clearTimeout(window._st);window._st=setTimeout(()=>{if(window._y==null)sv()},300)});
+let ar0=null;try{ar0=localStorage.getItem('cda_ar')}catch(e){}autoR(ar0==null?5:ar0);
 load();
 </script></body></html>
