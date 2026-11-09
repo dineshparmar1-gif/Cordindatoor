@@ -115,8 +115,8 @@ const cm=b.filter(x=>x.m==ym).length,lm=b.filter(x=>x.m==pm).length,np=pf?pf.len
 const K=[["Today's Count",today,'overview','Entries recorded today (IST), ignores date filter',bd(today,b.filter(x=>x.d==addD(t,-1)).length)],
 ["Total Work Count",F.length,'overview','All records matching filters',np!=null?bd(F.length,np):''],["Active Coordinators",ne,'coord','Coordinators with ≥1 record',''],
 ["Avg Daily Work",fm(F.length/(st.dn||1)),'overview','Total ÷ working days',''],["Total Working Days",st.dn,'month','Distinct dates with records',''],
-["Avg per Coordinator",fm(F.length/(ne||1)),'coord','Total ÷ active coordinators',''],["Top Coordinator",st.te[0].split('@')[0]+' ('+st.te[1]+')",'coord','Highest total in filter','s'],
-["Top Work Category",st.tc[0]+' ('+st.tc[1]+')",'cat','Most completed category','s'],["Peak Working Hour",hr(+st.th[0])+' ('+st.th[1]+')",'hour','Hour with most records','s'],
+["Avg per Coordinator",fm(F.length/(ne||1)),'coord','Total ÷ active coordinators',''],["Top Coordinator",st.te[0].split('@')[0]+' ('+st.te[1]+')','coord','Highest total in filter','s'],
+["Top Work Category",st.tc[0]+' ('+st.tc[1]+')','cat','Most completed category','s'],["Peak Working Hour",hr(+st.th[0])+' ('+st.th[1]+')','hour','Hour with most records','s'],
 ["Monthly Growth",cm,'growth','This month vs last month (cat/coordinator filters only)',bd(cm,lm)]];
 v.innerHTML='<div class=grid>'+K.map((k,i)=>`<div class="card k" title="${k[3]}" onclick="setView('${k[2]}')"><div class=l><span>${k[0]}</span>${k[4]=='s'?'':k[4]}</div><div class="v ${k[4]=='s'?'s':''}" id=kv${i}>${k[4]=='s'?esc(k[1]):0}</div></div>`).join('')+'</div>'
 +'<div class="grid g2" style="margin-top:14px"><div class=card><h3>Daily trend</h3><canvas id=c1></canvas></div><div class=card><h3>Category mix (click to filter)</h3><canvas id=c2></canvas></div><div class=card><h3>Coordinators (click to filter)</h3><canvas id=c3></canvas></div><div class=card><h3>💡 Team insights</h3><ul class=ins>'+insights(st,pf)+'</ul></div></div>';
