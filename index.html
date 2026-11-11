@@ -35,6 +35,9 @@ th{color:var(--mu);font-weight:600;cursor:pointer;position:sticky;top:0;backgrou
 .r1{background:linear-gradient(135deg,#f59e0b,#fde68a);color:#000}.r2{background:linear-gradient(135deg,#94a3b8,#e2e8f0);color:#000}.r3{background:linear-gradient(135deg,#b45309,#fdba74);color:#000}
 .sk{height:90px;border-radius:16px;background:linear-gradient(90deg,var(--card) 25%,var(--bd) 50%,var(--card) 75%);background-size:200% 100%;animation:sh 1.2s infinite}@keyframes sh{to{background-position:-200% 0}}
 .empty,#err{padding:40px;text-align:center;color:var(--mu)}#err{background:#dc262615;color:var(--dn);margin:14px 18px;border-radius:12px;padding:14px}
+.pl{display:flex;gap:8px;flex-wrap:wrap}.pl button{border:2px solid var(--bd);background:var(--card);color:var(--tx);border-radius:20px;padding:6px 14px;cursor:pointer}.pl button.on{border-color:var(--ac);background:var(--ac);color:#fff}.pl button:disabled{opacity:.5;cursor:not-allowed}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#16a34a;margin-right:6px;animation:pls 1.4s infinite}@keyframes pls{50%{opacity:.25}}
+.sb{padding:3px 11px;border-radius:12px;font-size:12px;font-weight:600}.alr{padding:14px;border-radius:14px;margin:12px 0;font-weight:600}.btn:disabled{opacity:.45;cursor:not-allowed}
 #modal[hidden],#toast[hidden]{display:none!important}#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#0b1f4d;color:#fff;padding:9px 18px;border-radius:20px;z-index:60}textarea.rt{width:100%;min-height:380px;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);font:14px/1.5 Consolas,monospace}#modal{position:fixed;inset:0;background:#0008;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
 #modal>div{background:var(--card);border-radius:18px;width:min(900px,100%);max-height:92vh;overflow:auto;padding:20px}
 .ins li{margin:6px 0}canvas{max-height:300px}
@@ -43,7 +46,7 @@ th{color:var(--mu);font-weight:600;cursor:pointer;position:sticky;top:0;backgrou
 <nav id="side"><h2><img src="logo.png" class="lg" alt="" onerror="this.outerHTML='📊'"> Coordinator Analysis</h2></nav>
 <div id="main">
 <header><button id="mb" class="btn g" style="display:none" onclick="side.classList.toggle('open')">☰</button>
-<img src="logo.png" id="logo" alt="Logo" onerror="this.style.display='none'"><h1>Coordinator Data Analysis</h1><span class="chip">FY 2026–2027 · v3</span><span class="chip" id="upd">Loading…</span>
+<img src="logo.png" id="logo" alt="Logo" onerror="this.style.display='none'"><h1>Coordinator Data Analysis</h1><span class="chip">FY 2026–2027 · v5</span><span class="chip" id="upd">Loading…</span>
 <button class="btn" onclick="load()">⟳ Refresh Data</button><button class="btn g" onclick="theme()">🌓</button><button class="btn g" onclick="document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()">⛶</button></header>
 <div id="err" hidden></div>
 <div id="flt">
@@ -58,7 +61,7 @@ const CATS=["Ticket Assigned to Zoho","Added in the Outbound Sheet","Added in th
 const WA=["Added in the LS","Added in the Outbound Sheet","Contact Number or RID Update & Hold","Duplicate Ticket - (Close)","Re-assign to Other's","Re-open Ticket","Self Raise + Added in the Outbound Sheet","Self Raise + Assigned it to Zoho","Status Update (Outbound) / Payment's Update (Lead's Sheet)","Ticket Assigned to Zoho","Ticket's Follow-up's (Zoho & Data Entry)","Ticket's QC","Transfer to MT Team / Data Entry Team / Retail POS or Other's","Visit QC"];
 const nk=x=>String(x).toLowerCase().replace(/\s+/g,''),canon=w=>{const k=nk(w);return CATS.concat(WA).find(c=>nk(c)==k)||w};
 let RP={date:'',email:'',name:''};
-const NAV=[["overview","🏠","Overview"],["coord","👥","Coordinator Performance"],["assign","🧾","Assigner Wise Analysis"],["hour","⏰","Hourly Activity"],["month","📅","Monthly Analysis"],["cat","🗂️","Work Category Analysis"],["target","🎯","Target vs Achievement"],["growth","📈","Productivity Growth"],["rec","📄","Detailed Records"],["report","📝","Reports"],["set","⚙️","Settings"]];
+const NAV=[["overview","🏠","Overview"],["coord","👥","Coordinator Performance"],["assign","🧾","Assigner Wise Analysis"],["hour","⏰","Hourly Activity"],["month","📅","Monthly Analysis"],["cat","🗂️","Work Category Analysis"],["target","🎯","Target vs Achievement"],["growth","📈","Productivity Growth"],["rec","📄","Detailed Records"],["report","📝","Reports"],["break","⏱️","Break Management"],["set","⚙️","Settings"]];
 const PAL=["#2563eb","#38bdf8","#16a34a","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#64748b","#84cc16","#0ea5e9","#a855f7","#eab308","#06b6d4"];
 const $=s=>document.querySelector(s),side=$('#side'),pre=$('#pre');
 let D,R=[],F=[],ci={},T={daily:{},monthly:{},cat:{}},S={from:'',to:'',cats:new Set(),emails:new Set()},view='overview',CH=[],RS={k:0,dir:1,q:'',p:0},draws=[];
@@ -89,18 +92,18 @@ if(BUSY)return;
 if(!window.API_URL||API_URL.includes('PASTE')){$('#err').hidden=false;$('#err').textContent='Set API_URL in config.js to your Apps Script web app URL.';$('#view').innerHTML='';return}
 BUSY=true;$('#err').hidden=true;
 const t0=performance.now();try{let C=full?null:await idbGet();
-if(D){window._y=scrollY;$('#upd').textContent='Refreshing…'}else if(C){init(bld(C));$('#upd').textContent='Cached · syncing…'}else skel();
+if(D){window._y=scrollY;$('#upd').textContent='Refreshing…'}else if(C){init(bld(C));$('#upd').textContent='Cached · syncing…'}else if(view!='break')skel();
 const m=await apiR('mode=meta');
 if(m.rows){init(Object.assign({headers:m.headers,rows:m.rows,lastSync:m.lastSync,settings:m.settings},nowIst()));BUSY=false;return}
 if(C&&(C.headers.join('|')!=m.headers.join('|')||C.lastRow>m.lastRow||Date.now()-(C.fullAt||0)>216e5))C=null;
-const have=C?C.lastRow:1,CH=3000,jobs=[];for(let a=have+1;a<=m.lastRow;a+=CH)jobs.push([a,Math.min(m.lastRow,a+CH-1)]);
+const have=C?C.lastRow:1,CH=5000,jobs=[];for(let a=have+1;a<=m.lastRow;a+=CH)jobs.push([a,Math.min(m.lastRow,a+CH-1)]);
 const out=[];let i=0,done=0;
 await Promise.all(Array.from({length:Math.min(6,jobs.length)},async()=>{while(i<jobs.length){const k=i++;out[k]=(await apiR('mode=rows&from='+jobs[k][0]+'&to='+jobs[k][1])).rows;done++;$('#upd').textContent='Loading '+Math.round(done/jobs.length*100)+'%'}}));
 const N={headers:m.headers,rows:(C?C.rows:[]).concat(...out),lastRow:m.lastRow,lastSync:m.lastSync,settings:m.settings,fullAt:C?C.fullAt:Date.now()};
 idbSet(N);LT=((performance.now()-t0)/1000).toFixed(1);if(D)window._y=scrollY;init(bld(N))
-}catch(e){$('#err').hidden=false;$('#err').textContent='Data connection failed: '+(e.message||e);if(!D)$('#view').innerHTML=''}
+}catch(e){$('#err').hidden=false;$('#err').textContent='Data connection failed: '+(e.message||e);if(!D&&view!='break')$('#view').innerHTML=''}
 BUSY=false}
-function init(d){D=d;const h=d.headers;ci={ts:h.findIndex(x=>/timestamp/i.test(x)),em:h.findIndex(x=>/email/i.test(x)),wk:h.findIndex(x=>/work/i.test(x)),as:h.findIndex(x=>/assigner|assigned by/i.test(x))};
+function init(d){D=d;const h=d.headers;ci={ts:h.findIndex(x=>/timestamp/i.test(x)),em:h.findIndex(x=>/email/i.test(x)),wk:h.findIndex(x=>/work/i.test(x)),as:h.findIndex(x=>/assign/i.test(x))};
 if(ci.ts<0||ci.em<0||ci.wk<0){$('#err').hidden=false;$('#err').textContent='Could not find Timestamp / Email / Work columns. Headers found: '+h.join(' | ');return}
 R=d.rows.map(r=>{const t=String(r[ci.ts]);return{d:t.slice(0,10),m:t.slice(0,7),h:+t.slice(11,13),e:String(r[ci.em]).trim().toLowerCase(),w:canon(String(r[ci.wk]).trim()),a:ci.as>=0?String(r[ci.as]).trim():'',r}}).filter(x=>/^\d{4}-\d\d-\d\d/.test(x.d)&&x.e);
 T=Object.assign({daily:{},monthly:{},cat:{}},d.settings||{});
@@ -129,7 +132,7 @@ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([b],{typ
 function cnt(el,n){let s=null;const f=t=>{s=s||t;const p=Math.min(1,(t-s)/700);el.textContent=Math.round(n*p).toLocaleString('en-IN');p<1&&requestAnimationFrame(f)};requestAnimationFrame(f)}
 function modal(h){$('#mbody').innerHTML=h;$('#modal').hidden=false}
 function sv(){try{localStorage.setItem('cda',JSON.stringify({view,from:S.from,to:S.to,cats:[...S.cats],emails:[...S.emails],pre:pre.value,RP,RS,t:document.documentElement.dataset.t||'',y:window._y!=null?window._y:scrollY}))}catch(e){}}
-function render(){if(!D)return;sv();kill();document.querySelectorAll('#side a').forEach(a=>a.classList.toggle('on',a.dataset.v==view));
+function render(){if(view!='break'){clearInterval(BK.tick);clearInterval(BK.poll)}$('#flt').style.display=view=='break'?'none':'flex';if(view=='break'){sv();kill();document.querySelectorAll('#side a').forEach(a=>a.classList.toggle('on',a.dataset.v==view));vBreak($('#view'));return}if(!D)return;sv();kill();document.querySelectorAll('#side a').forEach(a=>a.classList.toggle('on',a.dataset.v==view));
 const v=$('#view');if(!R.length){v.innerHTML='<div class=empty>No records found in the sheet.</div>';return}
 if(!F.length&&!['set','target','report'].includes(view)){v.innerHTML='<div class=empty>🔍 No records match the selected filters.</div>';return}
 ({overview:vOver,coord:vCoord,assign:vAssign,hour:vHour,month:vMonth,cat:vCat,target:vTarget,growth:vGrowth,rec:vRec,set:vSet,report:vReport})[view](v)}
@@ -175,8 +178,8 @@ modal(`<div style="display:flex;justify-content:space-between"><h2 style="margin
 mk('p1','line',d.map(x=>x[0]),[{label:'Daily records',data:d.map(x=>x[1]),fill:true,backgroundColor:'#2563eb22'}])}
 
 /* ---------- ASSIGNER ---------- */
-function vAssign(v){const hasA=ci.as>=0,f=hasA?(x=>x.a||'(blank)'):(x=>x.e),lbl=hasA?'Assigner':'Coordinator';const g=tp(by(F,f)),ym=D.today.slice(0,7),pm=addD(ym+'-01',-1).slice(0,7),t=D.today;
-v.innerHTML=`<h3>${hasA?'Assigner Wise Analysis':'Coordinator Wise Analysis'}</h3>${hasA?'':'<p style="color:var(--mu)">No separate assigner column exists in the sheet, so this uses the coordinator email field.</p>'}<div class=card><canvas id=c1></canvas></div><div class="card sc" style="margin-top:14px"><table><tr><th>${lbl}</th><th>Total</th><th>Today</th><th>Yesterday</th><th>This Month</th><th>Last Month</th><th>MoM</th></tr>`
+function vAssign(v){const hasA=ci.as>=0,f=hasA?(x=>x.a||'(blank)'):(x=>x.e),lbl=hasA?D.headers[ci.as]:'Coordinator';const g=tp(by(F,f)),ym=D.today.slice(0,7),pm=addD(ym+'-01',-1).slice(0,7),t=D.today;
+v.innerHTML=`<h3>${hasA?esc(D.headers[ci.as])+' wise analysis':'Coordinator Wise Analysis'}</h3>${hasA?'':'<p style="color:var(--mu)">No separate assigner column exists in the sheet, so this uses the coordinator email field.</p>'}<div class=card><canvas id=c1></canvas></div><div class="card sc" style="margin-top:14px"><table><tr><th>${lbl}</th><th>Total</th><th>Today</th><th>Yesterday</th><th>This Month</th><th>Last Month</th><th>MoM</th></tr>`
 +g.map(([k,n])=>{const a=F.filter(x=>f(x)==k),cm=a.filter(x=>x.m==ym).length,lm=a.filter(x=>x.m==pm).length;return`<tr><td>${esc(k)}</td><td>${n}</td><td>${a.filter(x=>x.d==t).length}</td><td>${a.filter(x=>x.d==addD(t,-1)).length}</td><td>${cm}</td><td>${lm}</td><td>${bd(cm,lm)}</td></tr>`}).join('')+'</table></div>';
 mk('c1','bar',g.map(x=>x[0].split('@')[0]),[{label:'Records',data:g.map(x=>x[1])}])}
 
@@ -229,7 +232,7 @@ function vSet(v){const ems=[...new Set(R.map(x=>x.e))].sort();
 v.innerHTML=`<div class=card><h3 style="margin-top:0">Targets (admin)</h3><p style="color:var(--mu)">Saving requires the admin PIN set in Script Properties. Viewing the dashboard needs no login.</p><div class=sc style="max-height:420px"><table><tr><th>Coordinator</th><th>Daily</th><th>Monthly</th></tr>${ems.map(e=>`<tr><td>${esc(e)}</td><td><input type=number min=0 data-k=daily data-e="${esc(e)}" value="${T.daily[e]||''}" style="width:90px"></td><td><input type=number min=0 data-k=monthly data-e="${esc(e)}" value="${T.monthly[e]||''}" style="width:90px"></td></tr>`).join('')}</table></div>
 <h3>Category targets (monthly, team)</h3><div class=grid>${CATS.map(c=>`<label style="font-size:12px">${esc(c)}<br><input type=number min=0 data-k=cat data-e="${esc(c)}" value="${T.cat[c]||''}" style="width:100%"></label>`).join('')}</div>
 <p><input type=password id=pin placeholder="Admin PIN" style="padding:8px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"> <button class=btn onclick="saveS()">Save targets</button> <span id=sm></span></p></div>
-<div class=card style="margin-top:14px"><h3 style="margin-top:0">Display & sync</h3><p>Dashboard version: <b>v3</b> · Records loaded: <b>${R.length}</b> · Last load time: <b>${LT?LT+' sec':'from cache'}</b></p><p>Last form sync: ${esc(D.lastSync||'—')} · Data loaded: ${esc(D.updated)}</p><p>Auto-refresh: <select id=ar onchange="autoR(this.value)">${[0,1,2,5,10,15].map(x=>`<option value=${x} ${x==AR?'selected':''}>${x?'Every '+x+' min':'Off'}</option>`).join('')}</select> <span id=arm>${AR?'✅ ON: har '+AR+' min mein data auto-refresh hoga (save ho gaya)':'⛔ Auto-refresh band hai'}</span> <button class="btn g" onclick="load(true)">⟳ Full reload (saare rows)</button> <button class="btn g" onclick="theme()">Toggle dark mode</button></p></div>`}
+<div class=card style="margin-top:14px"><h3 style="margin-top:0">Display & sync</h3><p>Dashboard version: <b>v5</b> · Records loaded: <b>${R.length}</b> · Last load time: <b>${LT?LT+' sec':'from cache'}</b></p><p>Last form sync: ${esc(D.lastSync||'—')} · Data loaded: ${esc(D.updated)}</p><p>Auto-refresh: <select id=ar onchange="autoR(this.value)">${[0,1,2,5,10,15].map(x=>`<option value=${x} ${x==AR?'selected':''}>${x?'Every '+x+' min':'Off'}</option>`).join('')}</select> <span id=arm>${AR?'✅ ON: har '+AR+' min mein data auto-refresh hoga (save ho gaya)':'⛔ Auto-refresh band hai'}</span> <button class="btn g" onclick="load(true)">⟳ Full reload (saare rows)</button> <button class="btn g" onclick="theme()">Toggle dark mode</button></p></div>`}
 function saveS(){const n={daily:{},monthly:{},cat:{}};document.querySelectorAll('[data-k]').forEach(i=>{if(i.value!=='')n[i.dataset.k][i.dataset.e]=+i.value});
 $('#sm').textContent='Saving…';fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:$('#pin').value,settings:n})}).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);T=n;$('#sm').textContent='✅ Saved'}).catch(e=>$('#sm').textContent='❌ '+(e.message||e))}
 function autoR(m){AR=+m;try{localStorage.setItem('cda_ar',m)}catch(e){}clearInterval(window._ar);if(AR)window._ar=setInterval(()=>{if(!document.hidden)load()},AR*6e4);const e=$('#arm');if(e)e.textContent=AR?`✅ ON: har ${AR} min mein data auto-refresh hoga (save ho gaya)`:'⛔ Auto-refresh band hai'}
@@ -257,6 +260,67 @@ v.innerHTML=`<div class=card style="display:flex;gap:10px;flex-wrap:wrap;align-i
 <div class=card style="grid-column:1/-1"><h3 style="margin-top:0">2) WhatsApp report (single email) <button class=btn onclick="copyTx('wt')">📋 Copy text</button></h3><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"><select onchange="RP.email=this.value;RP.name='';render()" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)">${ems.map(e=>`<option ${e==RP.email?'selected':''}>${esc(e)}</option>`).join('')}</select><input value="${esc(nm)}" onchange="RP.name=this.value;render()" placeholder="Name (line 1)" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"></div><textarea id=wt class=rt readonly>${esc(tx)}</textarea></div></div>`}
 try{const z=JSON.parse(localStorage.getItem('cda')||'null');if(z){view=NAV.some(n=>n[0]==z.view)?z.view:'overview';S.from=z.from||'';S.to=z.to||'';S.cats=new Set(z.cats||[]);S.emails=new Set(z.emails||[]);if(z.RP){RP=z.RP;RP.date=''}if(z.RS)RS=z.RS;if(z.t)document.documentElement.dataset.t=z.t;window._y=z.y||0;window._pre=z.pre||''}}catch(e){}
 addEventListener('scroll',()=>{clearTimeout(window._st);window._st=setTimeout(()=>{if(window._y==null)sv()},300)});
+/* ---------- BREAK MANAGEMENT ---------- */
+const TY=[['Lunch','🍽️','#2563eb','Lunch Break'],['Personal','🧘','#8b5cf6','Personal Break'],['Tea','☕','#f59e0b','Tea Break']];
+let BK={email:'',st:null,emps:null,type:'Lunch',off:0,tick:null,poll:null,busy:false,sig:'',f:{from:'',to:'',q:'',all:false,k:'startMs',dir:-1}};
+try{BK.email=localStorage.getItem('cda_bk')||''}catch(e){}
+const mmss=x=>{x=Math.max(0,Math.round(x));return String(Math.floor(x/60)).padStart(2,'0')+':'+String(x%60).padStart(2,'0')};
+const tIST=ms=>ms?new Date(ms).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
+const dIST=d=>d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);
+const tLab=t=>(TY.find(x=>x[0]==t)||[0,0,0,t])[3];
+const apiP=o=>fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o)}).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);return j});
+const bkNow=()=>Date.now()+BK.off;
+function bkLive(){const s=BK.st;if(!s||!s.used)return null;const u={Lunch:s.used.Lunch,Personal:s.used.Personal,Tea:s.used.Tea};let el=0;if(s.active){el=Math.max(0,Math.floor((bkNow()-s.active.startMs)/1000));u[s.active.type]+=el}
+const tot=u.Lunch+u.Personal+u.Tea,A=s.allow,stt=tot>A?['Break Limit Exceeded','#dc2626']:s.active?['Break In Progress','#2563eb']:tot>0?['Completed','#16a34a']:['Not Started','#64748b'];
+return{u,el,tot,A,rem:Math.max(0,A-tot),ex:Math.max(0,tot-A),stt,col:tot>A?'#dc2626':tot>=A*.8?'#f59e0b':'#16a34a'}}
+async function bkFetch(){try{bkSet(await api('mode=break_state&email='+encodeURIComponent(BK.email||'')))}catch(e){toast('Break data error: '+(e.message||e))}}
+function bkSet(j){BK.off=j.serverNow-Date.now();if(j.employees)BK.emps=j.employees;BK.st=j;if(view!='break')return;
+const sig=JSON.stringify([j.active&&j.active.id,j.used,j.alert&&[j.alert.status,j.alert.attempts],j.history&&j.history.length,j.today,BK.email,BK.emps&&BK.emps.length]);
+if(sig!==BK.sig){BK.sig=sig;bkTop();bkAl();bkHist()}}
+function bkPick(e){BK.email=e;try{localStorage.setItem('cda_bk',e)}catch(x){}BK.sig='';BK.st=null;$('#bkTop')&&($('#bkTop').style.opacity=.5);bkFetch()}
+async function bkAct(a,t){if(!BK.email){toast('Pehle employee select karo');return}if(BK.busy)return;BK.busy=true;
+try{const j=await apiP({action:a,email:BK.email,type:t});BK.sig='';bkSet(j);toast(a=='break_start'?'Break start ho gaya ✅':a=='break_end'?'Break end ho gaya ✅':'Notification retry hua')}catch(e){toast('❌ '+(e.message||e));bkFetch()}BK.busy=false}
+function vBreak(v){v.innerHTML=`<div id=bkTop></div><div id=bkA></div><div class=card style="margin-top:14px"><h3 style="margin-top:0">Recent Break History <button class="btn g" id=bva onclick="BK.f.all=!BK.f.all;bkHist()">View All</button> <button class="btn g" onclick="bkExp()">⬇ CSV</button> <button class="btn g" onclick="bkExp(1)">⬇ Excel</button></h3>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><input type=date value="${BK.f.from}" onchange="BK.f.from=this.value;bkHist()" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"><input type=date value="${BK.f.to}" onchange="BK.f.to=this.value;bkHist()" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card)"><input placeholder="Search…" value="${esc(BK.f.q)}" oninput="BK.f.q=this.value;bkHist()" style="padding:7px;border:1px solid var(--bd);border-radius:9px;background:var(--card);flex:1;min-width:140px"><button class="btn g" onclick="BK.f.from=BK.f.to=BK.f.q='';render()">Clear</button></div><div id=bkHT class=sc style="max-height:none"></div></div>`;
+clearInterval(BK.tick);clearInterval(BK.poll);
+if(BK.st){bkTop();bkAl();bkHist()}else{$('#bkTop').innerHTML='<div class=grid>'+'<div class=sk></div>'.repeat(4)+'</div>';bkFetch()}
+BK.tick=setInterval(bkTick,1000);BK.poll=setInterval(()=>{if(!document.hidden)bkFetch()},20000)}
+function bkTop(){if(!$('#bkTop'))return;$('#bkTop').style.opacity=1;const s=BK.st||{today:D?D.today:''},emps=BK.emps||[],e=emps.find(x=>x.email==BK.email),act=s.active;
+$('#bkTop').innerHTML=`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center"><div><h2 style="margin:0">⏱️ Break Management</h2><span class=chip><span class=dot></span>Live · ${s.today?dIST(s.today):''} · ${e?esc(e.name)+(e.phone?' · '+esc(e.phone):''):'Koi employee select nahi'}</span></div>
+<div><b>Employee Email *</b><br><select onchange="bkPick(this.value)" style="padding:8px;border:1px solid var(--bd);border-radius:9px;background:var(--card);min-width:270px"><option value="">Select employee…</option>${emps.map(x=>`<option value="${esc(x.email)}" ${x.email==BK.email?'selected':''}>${esc(x.name)} – ${esc(x.email)}</option>`).join('')}</select></div></div>
+<div class=card style="margin:12px 0;background:linear-gradient(90deg,#2563eb15,#8b5cf615)">ℹ️ Har employee ko din ka <b>total 60 minute</b> break milta hai (Lunch + Personal + Tea milake, alag-alag nahi). 60 min ke baad ka time <b>Extra Time</b> gina jaata hai. Allowance har din (IST) reset hota hai, purani history safe rehti hai.</div>
+<div id=alr></div>
+<div class="grid g2"><div class=card style="text-align:center"><div id=rg></div><div id=stt style="margin:8px 0"></div><div id=act style="color:var(--mu);min-height:44px"></div>
+<div class=pl style="justify-content:center;margin:10px 0">${TY.map(t=>`<button class="${BK.type==t[0]?'on':''}" ${act?'disabled':''} onclick="BK.type='${t[0]}';bkTop()">${t[1]} ${t[3]}</button>`).join('')}</div>
+<button class=btn ${!BK.email||act?'disabled':''} onclick="bkAct('break_start',BK.type)">▶ Start Break</button> <button class=btn style="background:#dc2626" ${act?'':'disabled'} onclick="bkAct('break_end')">■ End Break</button></div>
+<div style="display:grid;gap:14px">${TY.map((t,i)=>`<div class=card style="border-left:6px solid ${t[2]}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b>${t[1]} ${t[3]}</b>${act&&act.type==t[0]?`<button class=btn style="background:#dc2626" onclick="bkAct('break_end')">End Break</button>`:`<button class=btn style="background:${t[2]}" ${!BK.email||act?'disabled':''} onclick="bkAct('break_start','${t[0]}')">Start Break</button>`}</div><div id=cs${i}></div></div>`).join('')}</div></div>
+<h3>Daily Break Summary</h3><div class=card id=sumBox></div>`;bkTick()}
+function bkTick(){const s=BK.st;if(!s||!$('#rg'))return;
+if(s.today&&new Date(bkNow()).toLocaleDateString('sv-SE',{timeZone:'Asia/Kolkata'})!=s.today&&!BK.rl){BK.rl=1;BK.sig='';bkFetch().then(()=>BK.rl=0)}
+const L=bkLive();if(!L){$('#rg').innerHTML='<div class=empty style="padding:60px 10px">Employee select karo</div>';$('#stt').innerHTML='';$('#act').innerHTML='';$('#alr').innerHTML='';$('#sumBox').innerHTML='<div class=empty>Employee select karo.</div>';TY.forEach((t,i)=>$('#cs'+i)&&($('#cs'+i).innerHTML=''));return}
+const R=88,C=2*Math.PI*R,e=(BK.emps||[]).find(x=>x.email==BK.email)||{name:'',email:BK.email};
+$('#rg').innerHTML=`<svg viewBox="0 0 220 220" width=250 height=250><circle cx=110 cy=110 r=${R} fill=none stroke="#94a3b833" stroke-width=16 /><circle cx=110 cy=110 r=${R} fill=none stroke="${L.col}" stroke-width=16 stroke-linecap=round stroke-dasharray="${C}" stroke-dashoffset="${C*(1-L.rem/L.A)}" transform="rotate(-90 110 110)"/><text x=110 y=108 text-anchor=middle font-size=42 font-weight=700 fill="currentColor">${mmss(L.rem)}</text><text x=110 y=134 text-anchor=middle font-size=13 fill="#64748b">${L.ex?'Extra +'+mmss(L.ex):'Remaining'}</text></svg>`;
+$('#stt').innerHTML=`<span class=sb style="background:${L.stt[1]}22;color:${L.stt[1]}">${L.stt[0]}</span>`;
+const a=s.active;$('#act').innerHTML=a?`<b>${esc(e.name)}</b> · ${esc(e.email)}<br>${tLab(a.type)} · Started ${tIST(a.startMs)} · Elapsed <b>${mmss(L.el)}</b>`:'Abhi koi break active nahi hai.';
+$('#alr').innerHTML=L.ex>0?`<div class=alr style="background:#dc262615;border:1px solid #dc2626;color:#dc2626">🚨 Break Limit Alert! Daily 60 min ka allowance cross ho gaya. Extra Time: ${mmss(L.ex)}</div>`:L.tot>=L.A*.8?`<div class=alr style="background:#f59e0b18;border:1px solid #f59e0b;color:#b45309">⚠️ Limit ke kareeb: sirf ${mmss(L.rem)} bacha hai.</div>`:'';
+TY.forEach((t,i)=>{$('#cs'+i).innerHTML=`Total Used <b>${mmss(L.u[t[0]])}</b> · Remaining Allowance <b>${mmss(L.rem)}</b><div class=bar style="margin-top:8px"><i style="width:${Math.min(100,L.u[t[0]]/L.A*100)}%;background:${t[2]}"></i></div>`});
+const r2=70,C2=2*Math.PI*r2;let acc=0;const seg=L.ex>0?`<circle cx=90 cy=90 r=${r2} fill=none stroke="#dc2626" stroke-width=18 />`:TY.map(t=>{const len=C2*L.u[t[0]]/L.A,o=`<circle cx=90 cy=90 r=${r2} fill=none stroke="${t[2]}" stroke-width=18 stroke-dasharray="${len} ${C2-len}" stroke-dashoffset="${-acc}" transform="rotate(-90 90 90)"/>`;acc+=len;return o}).join('');
+$('#sumBox').innerHTML=`<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center"><svg viewBox="0 0 180 180" width=190 height=190><circle cx=90 cy=90 r=${r2} fill=none stroke="#94a3b833" stroke-width=18 />${seg}<text x=90 y=88 text-anchor=middle font-size=26 font-weight=700 fill="${L.col}">${mmss(L.tot)}</text><text x=90 y=108 text-anchor=middle font-size=11 fill="#64748b">of 60:00 used</text></svg>
+<div class=grid style="flex:1;min-width:260px"><div><div style="color:var(--mu)">Total Daily Allowance</div><b style="font-size:20px">60 min</b></div><div><div style="color:var(--mu)">Total Break Used</div><b style="font-size:20px;color:${L.col}">${mmss(L.tot)}</b></div><div><div style="color:var(--mu)">Remaining Time</div><b style="font-size:20px;color:#16a34a">${mmss(L.rem)}</b></div><div><div style="color:var(--mu)">Extra Time</div><b style="font-size:20px;color:${L.ex?'#dc2626':'inherit'}">${mmss(L.ex)}</b></div>
+${TY.map(t=>`<div><div style="color:var(--mu)"><span style="color:${t[2]}">●</span> ${t[3]}</div><b>${Math.round(L.u[t[0]]/60)} min</b></div>`).join('')}</div></div>`}
+function bkAl(){if(!$('#bkA'))return;const a=BK.st&&BK.st.alert,col={Sent:'#16a34a',Pending:'#f59e0b',Failed:'#dc2626'};
+$('#bkA').innerHTML=`<div class=card style="margin-top:14px"><h3 style="margin-top:0">🔔 Break Limit Alert (WhatsApp)</h3>${a?`Status: <span class=sb style="background:${col[a.status]}22;color:${col[a.status]}">${a.status}</span> · Attempts: ${a.attempts} · Total ${Math.round(a.totalSec/60)} min · Extra ${mmss(a.extraSec)}${a.lastError?`<br><small style="color:var(--dn)">${esc(a.lastError)}</small>`:''}${a.status!='Sent'?`<br><br><button class=btn onclick="bkAct('break_retry')">↻ Retry notification</button>`:''}`:'<span style="color:var(--mu)">Aaj is employee ka koi limit alert trigger nahi hua.</span>'}</div>`}
+function bkRows(){const s=BK.st;if(!s||!s.history)return[];const h=s.history.map(x=>Object.assign({},x)),byd={};
+h.slice().sort((a,b)=>a.startMs-b.startMs).forEach(x=>{x.d=x.endMs?x.dur:Math.max(0,Math.floor((bkNow()-x.startMs)/1000));byd[x.date]=(byd[x.date]||0)+x.d;x.st=!x.endMs?'In Progress':byd[x.date]>s.allow?'Limit Exceeded':'Completed'});
+const f=BK.f,q=f.q.toLowerCase();let r=h.filter(x=>(!f.from||x.date>=f.from)&&(!f.to||x.date<=f.to)&&(!q||(x.name+' '+tLab(x.type)+' '+dIST(x.date)+' '+x.st).toLowerCase().includes(q)));
+return r.sort((a,b)=>(a[f.k]>b[f.k]?1:a[f.k]<b[f.k]?-1:0)*f.dir)}
+function bkSort(k){const f=BK.f;if(f.k==k)f.dir*=-1;else{f.k=k;f.dir=1}bkHist()}
+function bkHist(){if(!$('#bkHT'))return;const r=bkRows(),sh=BK.f.all?r:r.slice(0,10);$('#bva').textContent=BK.f.all?'Show less':'View All ('+r.length+')';
+const sc={'Completed':'#16a34a','In Progress':'#2563eb','Limit Exceeded':'#dc2626'};
+$('#bkHT').innerHTML=!BK.email?'<div class=empty>Employee select karo.</div>':!r.length?'<div class=empty>Koi break record nahi mila.</div>':`<table><tr>${[['Date','startMs'],['Employee','name'],['Break Type','type'],['Start Time','startMs'],['End Time','endMs'],['Duration','d'],['Status','st']].map(c=>`<th onclick="bkSort('${c[1]}')">${c[0]}</th>`).join('')}</tr>${sh.map(x=>`<tr><td>${dIST(x.date)}</td><td>${esc(x.name)}</td><td>${tLab(x.type)}</td><td>${tIST(x.startMs)}</td><td>${tIST(x.endMs)}</td><td>${mmss(x.d)}</td><td><span class=sb style="background:${sc[x.st]}22;color:${sc[x.st]}">${x.st}</span></td></tr>`).join('')}</table>`}
+function bkExp(x){const r=bkRows();csv(['Date','Employee','Email','Break Type','Start Time','End Time','Duration (mm:ss)','Status'],r.map(y=>[dIST(y.date),y.name,BK.email,tLab(y.type),tIST(y.startMs),tIST(y.endMs),mmss(y.d),y.st]),'break-history',x)}
+
 let ar0=null;try{ar0=localStorage.getItem('cda_ar')}catch(e){}autoR(ar0==null?5:ar0);
+if(view=='break')render();
 load();
 </script></body></html>
